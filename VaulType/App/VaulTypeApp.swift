@@ -54,7 +54,7 @@ struct VaulTypeApp: App {
         .modelContainer(modelContainer)
 
         Settings {
-            Text("Settings placeholder")
+            SettingsView()
         }
         .modelContainer(modelContainer)
     }
