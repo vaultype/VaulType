@@ -10,6 +10,8 @@ import SwiftUI
 
 @main
 struct VaulTypeApp: App {
+    @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
+    @State private var appState = AppState()
     let modelContainer: ModelContainer
 
     init() {
@@ -44,8 +46,9 @@ struct VaulTypeApp: App {
     }
 
     var body: some Scene {
-        MenuBarExtra("VaulType", systemImage: "mic.fill") {
-            Text("VaulType Menu Bar App")
+        MenuBarExtra("VaulType", systemImage: appState.menuBarIcon) {
+            MenuBarView()
+                .environment(appState)
         }
         .menuBarExtraStyle(.window)
         .modelContainer(modelContainer)
