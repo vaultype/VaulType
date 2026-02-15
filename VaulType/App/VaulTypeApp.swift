@@ -49,8 +49,10 @@ struct VaulTypeApp: App {
     }
 
     var body: some Scene {
-        MenuBarExtra("VaulType", systemImage: appDelegate.appState.menuBarIcon) {
+        MenuBarExtra {
             MenuBarView(appState: appDelegate.appState)
+        } label: {
+            Image(nsImage: appDelegate.appState.menuBarImage)
         }
         .menuBarExtraStyle(.window)
         .modelContainer(modelContainer)
