@@ -3,6 +3,7 @@ import os
 
 extension Notification.Name {
     static let whisperModelDownloaded = Notification.Name("com.vaultype.whisperModelDownloaded")
+    static let userSettingsChanged = Notification.Name("com.vaultype.userSettingsChanged")
 }
 
 /// Downloads whisper/LLM models from remote URLs with progress tracking.
