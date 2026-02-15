@@ -9,5 +9,6 @@
 #define VaulType_Bridging_Header_h
 
 #include "whisper.h"
+#include "llama.h"
 
 #endif /* VaulType_Bridging_Header_h */
