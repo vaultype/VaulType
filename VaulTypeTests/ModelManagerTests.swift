@@ -4,6 +4,7 @@ import XCTest
 
 @testable import VaulType
 
+@MainActor
 final class ModelManagerTests: XCTestCase {
     private var modelContainer: ModelContainer!
     private var modelContext: ModelContext!
