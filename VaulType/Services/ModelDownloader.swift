@@ -3,6 +3,7 @@ import os
 
 extension Notification.Name {
     static let whisperModelDownloaded = Notification.Name("com.vaultype.whisperModelDownloaded")
+    static let llmModelDownloaded = Notification.Name("com.vaultype.llmModelDownloaded")
     static let userSettingsChanged = Notification.Name("com.vaultype.userSettingsChanged")
 }
 
@@ -94,8 +95,11 @@ final class ModelDownloader: @unchecked Sendable {
             Logger.models.info("Download complete: \(model.name) -> \(model.filePath.path)")
 
             // Notify the pipeline to load the newly downloaded model
+            let notificationName: Notification.Name = model.type == .llm
+                ? .llmModelDownloaded
+                : .whisperModelDownloaded
             NotificationCenter.default.post(
-                name: .whisperModelDownloaded,
+                name: notificationName,
                 object: nil,
                 userInfo: ["fileName": model.fileName]
             )
