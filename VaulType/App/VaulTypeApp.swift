@@ -34,7 +34,6 @@ struct VaulTypeApp: App {
         do {
             modelContainer = try ModelContainer(
                 for: schema,
-                migrationPlan: VaulTypeMigrationPlan.self,
                 configurations: [configuration]
             )
         } catch {
