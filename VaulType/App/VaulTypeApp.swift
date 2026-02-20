@@ -38,7 +38,21 @@ struct VaulTypeApp: App {
                 configurations: [configuration]
             )
         } catch {
-            fatalError("Failed to initialize SwiftData container: \(error)")
+            Logger.general.error("SwiftData migration failed, recreating store: \(error.localizedDescription)")
+            // Delete the incompatible store and retry with a fresh database
+            let storePath = URL.applicationSupportDirectory.appendingPathComponent("VaulType.store").path
+            for suffix in ["", "-wal", "-shm"] {
+                try? FileManager.default.removeItem(atPath: storePath + suffix)
+            }
+            do {
+                modelContainer = try ModelContainer(
+                    for: schema,
+                    configurations: [configuration]
+                )
+                Logger.general.info("SwiftData store recreated successfully")
+            } catch {
+                fatalError("Failed to initialize SwiftData container after reset: \(error)")
+            }
         }
 
         // Seed built-in data on first launch
