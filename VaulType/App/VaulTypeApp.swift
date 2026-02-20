@@ -94,5 +94,6 @@ struct VaulTypeApp: App {
         .windowStyle(.hiddenTitleBar)
         .windowResizability(.contentSize)
         .defaultPosition(.center)
+        .modelContainer(modelContainer)
     }
 }
