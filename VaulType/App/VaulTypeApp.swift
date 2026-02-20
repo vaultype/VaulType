@@ -21,7 +21,8 @@ struct VaulTypeApp: App {
             AppProfile.self,
             VocabularyEntry.self,
             UserSettings.self,
-            ModelInfo.self
+            ModelInfo.self,
+            CustomCommand.self
         ])
 
         let configuration = ModelConfiguration(
