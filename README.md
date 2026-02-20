@@ -1,8 +1,8 @@
 <p align="center">
-  <!-- <img src="assets/vaultype-icon.png" width="128" alt="VaulType Icon"> -->
-  <h1 align="center">VaulType</h1>
-  <p align="center"><em>Your voice stays private. Text appears at your cursor.</em></p>
+  <img src="assets/icon-rounded.png" width="128" alt="VaulType Icon">
 </p>
+<h1 align="center">VaulType</h1>
+<p align="center"><em>Your voice stays private. Text appears at your cursor.</em></p>
 
 <p align="center">
   <!-- Badges -->
