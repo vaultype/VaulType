@@ -4,5 +4,7 @@
 <dict>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>VaulType needs microphone access to capture speech for transcription. All audio is processed locally on your device.</string>
+	<key>NSHumanReadableCopyright</key>
+	<string>Copyright © 2026 VaulType. All rights reserved.</string>
 </dict>
 </plist>
