@@ -3,8 +3,8 @@
 # To submit to homebrew-cask: https://github.com/Homebrew/homebrew-cask/blob/HEAD/CONTRIBUTING.md
 
 cask "vaultype" do
-  version "1.0.0"
-  sha256 "PLACEHOLDER_SHA256"
+  version "1.0.0-rc1"
+  sha256 "db7a5116ffdea136bd764272d26cbdf622b6be8fb8bac9932783db0679d03f30"
 
   url "https://github.com/vaultype/VaulType/releases/download/v#{version}/VaulType-#{version}.dmg"
   name "VaulType"
@@ -12,7 +12,6 @@ cask "vaultype" do
   homepage "https://github.com/vaultype/VaulType"
 
   depends_on macos: ">= :sonoma"
-  depends_on arch: :arm64
 
   app "VaulType.app"
 
