@@ -90,6 +90,15 @@ struct VaulTypeApp: App {
 
         Window("Welcome to VaulType", id: "onboarding") {
             OnboardingView()
+                .onAppear {
+                    NSApp.activate(ignoringOtherApps: true)
+                    DispatchQueue.main.async {
+                        for window in NSApp.windows where window.title == "Welcome to VaulType" {
+                            window.level = .floating
+                            window.orderFrontRegardless()
+                        }
+                    }
+                }
         }
         .windowStyle(.hiddenTitleBar)
         .windowResizability(.contentSize)
