@@ -87,5 +87,12 @@ struct VaulTypeApp: App {
                 }
         }
         .modelContainer(modelContainer)
+
+        Window("Welcome to VaulType", id: "onboarding") {
+            OnboardingView()
+        }
+        .windowStyle(.hiddenTitleBar)
+        .windowResizability(.contentSize)
+        .defaultPosition(.center)
     }
 }
