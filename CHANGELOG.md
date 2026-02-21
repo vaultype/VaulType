@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 ### Changed
+- Renamed project from VaulType to VaulType (all source, configs, CI/CD, docs, and distribution)
 
 ### Deprecated
 
