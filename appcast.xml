@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" xmlns:dc="http://purl.org/dc/elements/1.1/">
+    <channel>
+        <title>VaulType</title>
+        <link>https://vaultype.github.io/VaulType/appcast.xml</link>
+        <description>VaulType update feed</description>
+        <language>en</language>
+        <!-- Items will be added by scripts/update-appcast.sh on each release -->
+    </channel>
+</rss>
