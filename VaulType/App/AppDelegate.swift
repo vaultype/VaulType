@@ -34,6 +34,28 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var currentHotkey: String = ""
     private var currentWhisperThreadCount: Int = 0
 
+    func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
+        Logger.general.info("App terminating — cleaning up Metal resources")
+
+        // Stop the dictation pipeline (hotkey, audio)
+        dictationController?.stop()
+
+        // Synchronously unload whisper model (frees Metal resources via whisper_free)
+        dictationController?.unloadWhisperModel()
+
+        powerManagementService?.stop()
+
+        // Unload LLM model asynchronously (actor-isolated), then allow termination.
+        // This frees llama.cpp Metal resources before C++ static destructors run.
+        Task { @MainActor in
+            await self.dictationController?.unloadLLMModel()
+            Logger.general.info("Model cleanup complete — safe to terminate")
+            NSApp.reply(toApplicationShouldTerminate: true)
+        }
+
+        return .terminateLater
+    }
+
     func applicationDidFinishLaunching(_ notification: Notification) {
         // Kill any other running instances of VaulType (skip during unit tests)
         if ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] == nil {
