@@ -6,7 +6,9 @@
 //
 
 import AppKit
+#if !APPSTORE
 import Sparkle
+#endif
 import SwiftData
 import os
 
@@ -17,7 +19,9 @@ private let startupSignpostID = OSSignpostID(log: startupLog)
 class AppDelegate: NSObject, NSApplicationDelegate {
     let appState = AppState()
     var modelContainer: ModelContainer?
+    #if !APPSTORE
     let updaterController = SPUStandardUpdaterController(startingUpdater: true, updaterDelegate: nil, userDriverDelegate: nil)
+    #endif
     private var dictationController: DictationController?
     private var appContextService: AppContextService?
     private var modelDownloader: ModelDownloader?
@@ -294,7 +298,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             appState.commandRegistry = commandRegistry
 
             // Wire plugin manager for pipeline integration
+            #if !APPSTORE
             appState.pluginManager.discoverPlugins()
+            #endif
             controller.setPluginManager(appState.pluginManager)
 
             // Configure LLM service (lightweight — no model loading yet)

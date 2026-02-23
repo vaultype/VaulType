@@ -1,0 +1,241 @@
+name: App Store Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version number (e.g. 1.0.0)"
+        required: true
+  push:
+    tags: ["appstore-v*"]
+
+concurrency:
+  group: appstore-release-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  WHISPER_TAG: "v1.7.4"
+  LLAMA_TAG: "b8059"
+  XCODE_VERSION: "16.2"
+  APP_NAME: "VaulType"
+  SCHEME: "VaulType AppStore"
+  CONFIGURATION: "Release-AppStore"
+  TEAM_ID: "__TEAM_ID__"
+
+jobs:
+  appstore-release:
+    name: Build & Upload to App Store
+    runs-on: macos-15
+    permissions:
+      contents: read
+
+    steps:
+      # ------------------------------------------------------------------
+      # 1. Checkout & Environment
+      # ------------------------------------------------------------------
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Determine version
+        id: version
+        env:
+          INPUT_VERSION: ${{ github.event.inputs.version }}
+          GIT_REF: ${{ github.ref }}
+        run: |
+          if [ -n "$INPUT_VERSION" ]; then
+            VERSION="$INPUT_VERSION"
+          else
+            VERSION="${GIT_REF#refs/tags/appstore-v}"
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "App Store release version: $VERSION"
+
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode_${XCODE_VERSION}.app
+
+      - name: Install CMake
+        run: |
+          if ! command -v cmake &>/dev/null; then
+            brew install cmake
+          fi
+
+      # ------------------------------------------------------------------
+      # 2. Vendor Libraries (cached)
+      # ------------------------------------------------------------------
+      - name: Cache vendor libraries
+        id: vendor-cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            vendor/whisper.cpp
+            vendor/llama.cpp
+            WhisperKit/Sources/CWhisper/include
+          key: vendor-${{ env.WHISPER_TAG }}-${{ env.LLAMA_TAG }}-${{ runner.arch }}
+          restore-keys: |
+            vendor-${{ env.WHISPER_TAG }}-${{ env.LLAMA_TAG }}-
+
+      - name: Build whisper.cpp
+        if: steps.vendor-cache.outputs.cache-hit != 'true'
+        run: ./scripts/setup-whisper.sh
+
+      - name: Build llama.cpp
+        if: steps.vendor-cache.outputs.cache-hit != 'true'
+        run: ./scripts/setup-llama.sh
+
+      - name: Restore whisper headers (cache hit)
+        if: steps.vendor-cache.outputs.cache-hit == 'true'
+        run: |
+          mkdir -p WhisperKit/Sources/CWhisper/include
+          if [ ! -f WhisperKit/Sources/CWhisper/include/whisper.h ]; then
+            cp vendor/whisper.cpp/include/whisper.h WhisperKit/Sources/CWhisper/include/
+          fi
+
+      # ------------------------------------------------------------------
+      # 3. Code Signing Setup
+      # ------------------------------------------------------------------
+      - name: Install App Store certificates
+        env:
+          APP_STORE_CERTIFICATE_BASE64: ${{ secrets.APP_STORE_CERTIFICATE_BASE64 }}
+          APP_STORE_CERTIFICATE_PASSWORD: ${{ secrets.APP_STORE_CERTIFICATE_PASSWORD }}
+          INSTALLER_CERTIFICATE_BASE64: ${{ secrets.INSTALLER_CERTIFICATE_BASE64 }}
+          INSTALLER_CERTIFICATE_PASSWORD: ${{ secrets.INSTALLER_CERTIFICATE_PASSWORD }}
+          KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
+        run: |
+          KEYCHAIN_PATH="$RUNNER_TEMP/build.keychain-db"
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+
+          # Import Mac App Distribution certificate
+          CERT_PATH="$RUNNER_TEMP/app-store-cert.p12"
+          printf '%s' "$APP_STORE_CERTIFICATE_BASE64" | base64 --decode > "$CERT_PATH"
+          security import "$CERT_PATH" -P "$APP_STORE_CERTIFICATE_PASSWORD" -A -t cert -f pkcs12 -k "$KEYCHAIN_PATH"
+
+          # Import Mac Installer Distribution certificate
+          INSTALLER_CERT_PATH="$RUNNER_TEMP/installer-cert.p12"
+          printf '%s' "$INSTALLER_CERTIFICATE_BASE64" | base64 --decode > "$INSTALLER_CERT_PATH"
+          security import "$INSTALLER_CERT_PATH" -P "$INSTALLER_CERTIFICATE_PASSWORD" -A -t cert -f pkcs12 -k "$KEYCHAIN_PATH"
+
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security list-keychains -d user -s "$KEYCHAIN_PATH" login.keychain-db
+
+          echo "keychain_path=$KEYCHAIN_PATH" >> "$GITHUB_ENV"
+
+      # ------------------------------------------------------------------
+      # 4. Test & Build
+      # ------------------------------------------------------------------
+      - name: Run tests (App Store config)
+        run: |
+          xcodebuild test \
+            -scheme "$SCHEME" \
+            -configuration "Debug-AppStore" \
+            -destination 'platform=macOS,arch=arm64' \
+            2>&1 | tail -30
+
+      - name: Build App Store archive
+        env:
+          RELEASE_VERSION: ${{ steps.version.outputs.version }}
+          BUILD_NUMBER: ${{ github.run_number }}
+        run: |
+          # App Store builds use 1000+ offset to distinguish from direct distribution (1-999)
+          APPSTORE_BUILD_NUMBER=$((BUILD_NUMBER + 1000))
+          echo "App Store build number: $APPSTORE_BUILD_NUMBER (base: $BUILD_NUMBER)"
+
+          xcodebuild archive \
+            -scheme "$SCHEME" \
+            -configuration "$CONFIGURATION" \
+            -destination 'platform=macOS,arch=arm64' \
+            -archivePath build/${APP_NAME}-AppStore.xcarchive \
+            ONLY_ACTIVE_ARCH=YES \
+            CODE_SIGN_STYLE=Automatic \
+            DEVELOPMENT_TEAM="${TEAM_ID}" \
+            MARKETING_VERSION="${RELEASE_VERSION}" \
+            CURRENT_PROJECT_VERSION="${APPSTORE_BUILD_NUMBER}" \
+            2>&1 | tail -30
+
+      - name: Verify App Store build integrity
+        run: |
+          APP_PATH="build/${APP_NAME}-AppStore.xcarchive/Products/Applications/${APP_NAME}.app"
+
+          echo "=== 1. Verify Sparkle.framework is absent ==="
+          if [ -d "$APP_PATH/Contents/Frameworks/Sparkle.framework" ]; then
+            echo "::error::Sparkle.framework found in App Store build!"
+            exit 1
+          fi
+          echo "OK: Sparkle.framework not present"
+
+          echo ""
+          echo "=== 2. Verify entitlements ==="
+          ENTITLEMENTS=$(codesign -d --entitlements - "$APP_PATH" 2>&1)
+          echo "$ENTITLEMENTS"
+
+          if ! echo "$ENTITLEMENTS" | grep -q "com.apple.security.app-sandbox"; then
+            echo "::error::Missing app-sandbox entitlement!"
+            exit 1
+          fi
+          echo "OK: app-sandbox entitlement present"
+
+          echo ""
+          echo "=== 3. Verify prohibited entitlements are absent ==="
+          for prohibited in "cs.disable-library-validation" "cs.allow-jit" "cs.allow-unsigned-executable-memory" "automation.apple-events"; do
+            if echo "$ENTITLEMENTS" | grep -q "$prohibited"; then
+              echo "::error::Prohibited entitlement found: $prohibited"
+              exit 1
+            fi
+          done
+          echo "OK: No prohibited entitlements"
+
+          echo ""
+          echo "=== 4. Checking for restricted symbols ==="
+          RESTRICTED=$(nm -u "$APP_PATH/Contents/MacOS/${APP_NAME}" 2>/dev/null | \
+            grep -iE "IOPSCopy|AXUIElement|IOServiceMatching|IORegistryEntry" || true)
+          if [ -n "$RESTRICTED" ]; then
+            echo "$RESTRICTED"
+            echo "::error::Restricted symbols found in App Store binary!"
+            exit 1
+          fi
+          echo "OK: No restricted symbols"
+
+      # ------------------------------------------------------------------
+      # 5. Export & Upload to App Store Connect
+      # ------------------------------------------------------------------
+      - name: Export and upload to App Store Connect
+        env:
+          APP_STORE_CONNECT_API_KEY_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}
+          APP_STORE_CONNECT_API_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_API_ISSUER_ID }}
+          APP_STORE_CONNECT_API_KEY_P8: ${{ secrets.APP_STORE_CONNECT_API_KEY_P8 }}
+        run: |
+          API_KEY_PATH="$RUNNER_TEMP/AuthKey_${APP_STORE_CONNECT_API_KEY_ID}.p8"
+          echo "$APP_STORE_CONNECT_API_KEY_P8" > "$API_KEY_PATH"
+
+          xcodebuild -exportArchive \
+            -archivePath build/${APP_NAME}-AppStore.xcarchive \
+            -exportOptionsPlist ExportOptions-AppStore.plist \
+            -exportPath build/appstore-export \
+            -authenticationKeyPath "$API_KEY_PATH" \
+            -authenticationKeyID "$APP_STORE_CONNECT_API_KEY_ID" \
+            -authenticationKeyIssuerID "$APP_STORE_CONNECT_API_ISSUER_ID" \
+            -allowProvisioningUpdates \
+            2>&1 | tail -30
+
+      # ------------------------------------------------------------------
+      # 6. Cleanup
+      # ------------------------------------------------------------------
+      - name: Cleanup keychain
+        if: always()
+        run: |
+          if [ -n "${keychain_path:-}" ]; then
+            security delete-keychain "$keychain_path" 2>/dev/null || true
+          fi
+
+      - name: Upload build artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: appstore-${{ steps.version.outputs.version }}
+          path: |
+            build/${{ env.APP_NAME }}-AppStore.xcarchive
+          if-no-files-found: warn
+          retention-days: 30

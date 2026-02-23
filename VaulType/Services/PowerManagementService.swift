@@ -1,5 +1,7 @@
 import Foundation
+#if !APPSTORE
 import IOKit.ps
+#endif
 import os
 
 /// Monitors system power state (battery, thermal, memory pressure) and provides
@@ -94,6 +96,13 @@ final class PowerManagementService {
 
     private func updateBatteryState() {
         let wasOnBattery = isOnBattery
+        #if APPSTORE
+        // Sandbox does not allow IOKit power source queries. ProcessInfo.isLowPowerModeEnabled
+        // only reflects the user's Low Power Mode toggle, NOT the actual power source.
+        // Reliable battery detection is not possible in the sandbox, so we leave isOnBattery
+        // as false and rely on thermal/memory pressure monitoring for throttling instead.
+        _ = wasOnBattery
+        #else
         isOnBattery = checkBatteryPowerSource()
 
         if wasOnBattery != isOnBattery {
@@ -102,8 +111,10 @@ final class PowerManagementService {
                 onPowerStateChanged?(isOnBattery)
             }
         }
+        #endif
     }
 
+    #if !APPSTORE
     /// Check if running on battery via IOKit power source info.
     private func checkBatteryPowerSource() -> Bool {
         guard let snapshot = IOPSCopyPowerSourcesInfo()?.takeRetainedValue(),
@@ -115,6 +126,7 @@ final class PowerManagementService {
         }
         return powerSource == (kIOPSBatteryPowerValue as String)
     }
+    #endif
 
     // MARK: - Thermal Monitoring
 

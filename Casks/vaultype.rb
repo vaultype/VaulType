@@ -12,12 +12,13 @@ cask "vaultype" do
   homepage "https://github.com/vaultype/VaulType"
 
   depends_on macos: ">= :sonoma"
+  depends_on arch: :arm64
 
   app "VaulType.app"
 
   zap trash: [
     "~/Library/Application Support/VaulType",
-    "~/Library/Preferences/com.vaultype.app.plist",
-    "~/Library/Caches/com.vaultype.app",
+    "~/Library/Preferences/com.vaultype.VaulType.plist",
+    "~/Library/Caches/com.vaultype.VaulType",
   ]
 end

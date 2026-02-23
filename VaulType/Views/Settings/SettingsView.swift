@@ -1,4 +1,6 @@
+#if !APPSTORE
 import Sparkle
+#endif
 import SwiftUI
 import SwiftData
 import os
@@ -7,15 +9,25 @@ struct SettingsView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(AppState.self) private var appState
     @State private var selectedTab: Int = 0
+    #if !APPSTORE
     let updater: SPUUpdater
+    #endif
 
     var body: some View {
         TabView(selection: $selectedTab) {
+            #if !APPSTORE
             GeneralSettingsTab(updater: updater)
                 .tabItem {
                     Label("General", systemImage: "gear.circle")
                 }
                 .tag(0)
+            #else
+            GeneralSettingsTab()
+                .tabItem {
+                    Label("General", systemImage: "gear.circle")
+                }
+                .tag(0)
+            #endif
 
             AudioSettingsTab()
                 .tabItem {
@@ -65,11 +77,13 @@ struct SettingsView: View {
                 }
                 .tag(8)
 
+            #if !APPSTORE
             PluginManagerView(pluginManager: appState.pluginManager)
                 .tabItem {
                     Label("Plugins", systemImage: "puzzlepiece.extension")
                 }
                 .tag(9)
+            #endif
         }
         .frame(minWidth: 500, minHeight: 700)
         .onAppear {
@@ -79,6 +93,17 @@ struct SettingsView: View {
     }
 }
 
+#if APPSTORE
+#Preview {
+    SettingsView()
+        .environment(AppState())
+        .modelContainer(for: [
+            UserSettings.self, ModelInfo.self, PromptTemplate.self,
+            AppProfile.self, VocabularyEntry.self, DictationEntry.self,
+            CustomCommand.self
+        ], inMemory: true)
+}
+#else
 #Preview {
     SettingsView(updater: SPUStandardUpdaterController(startingUpdater: false, updaterDelegate: nil, userDriverDelegate: nil).updater)
         .environment(AppState())
@@ -88,3 +113,4 @@ struct SettingsView: View {
             CustomCommand.self
         ], inMemory: true)
 }
+#endif

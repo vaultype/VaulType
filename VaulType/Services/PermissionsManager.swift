@@ -7,15 +7,31 @@ import os
 final class PermissionsManager {
     // MARK: - State
 
-    /// Whether accessibility access has been granted.
+    /// Whether text injection permission has been granted.
+    /// App Store builds use PostEvent TCC; direct distribution uses full Accessibility.
+    #if APPSTORE
+    private(set) var accessibilityEnabled: Bool = CGPreflightPostEventAccess()
+    #else
     private(set) var accessibilityEnabled: Bool = AXIsProcessTrusted()
+    #endif
 
     // MARK: - Accessibility
 
-    /// Check the current accessibility permission state.
+    /// Check the current permission state.
     func refreshAccessibilityStatus() {
+        #if APPSTORE
+        accessibilityEnabled = CGPreflightPostEventAccess()
+        #else
         accessibilityEnabled = AXIsProcessTrusted()
+        #endif
     }
+
+    #if APPSTORE
+    /// Request PostEvent permission (shows system TCC dialog).
+    func requestPostEventAccess() {
+        CGRequestPostEventAccess()
+    }
+    #endif
 
     // MARK: - Microphone
 

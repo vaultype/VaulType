@@ -169,6 +169,37 @@ struct OnboardingView: View {
                     .foregroundStyle(Color.accentColor)
             }
 
+            #if APPSTORE
+            Text("Text Input Permission")
+                .font(.title)
+                .fontWeight(.bold)
+
+            Text("VaulType needs permission to simulate keystrokes so it can type transcribed text into any app.")
+                .font(.body)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+                .frame(maxWidth: 380)
+
+            if permissionsManager.accessibilityEnabled {
+                Label("Text input permission granted", systemImage: "checkmark.circle.fill")
+                    .foregroundStyle(Color.green)
+                    .font(.callout)
+                    .accessibilityLabel("Text input permission granted")
+            } else {
+                Button("Grant Text Input Permission") {
+                    permissionsManager.requestPostEventAccess()
+                }
+                .buttonStyle(.bordered)
+                .accessibilityLabel("Grant text input permission")
+                .accessibilityHint("Shows a system dialog to allow VaulType to type text into applications")
+
+                Text("Without this permission, text will be copied to clipboard instead of typed directly. You can grant it later in System Settings.")
+                    .font(.caption)
+                    .foregroundStyle(.orange)
+                    .multilineTextAlignment(.center)
+                    .frame(maxWidth: 340)
+            }
+            #else
             Text("Accessibility Permission")
                 .font(.title)
                 .fontWeight(.bold)
@@ -198,6 +229,7 @@ struct OnboardingView: View {
                     .multilineTextAlignment(.center)
                     .frame(maxWidth: 340)
             }
+            #endif
 
             Spacer()
         }

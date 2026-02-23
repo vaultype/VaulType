@@ -152,16 +152,20 @@ final class OnboardingViewTests: XCTestCase {
 
     func testRefreshAccessibilityStatusUpdatesBooleanProperty() {
         // `refreshAccessibilityStatus()` must update `accessibilityEnabled` to
-        // match the current AXIsProcessTrusted() value. The test verifies that
+        // match the current system permission value. The test verifies that
         // after calling it the property equals the live system value.
         let manager = PermissionsManager()
         manager.refreshAccessibilityStatus()
 
+        #if APPSTORE
+        let expected = CGPreflightPostEventAccess()
+        #else
         let expected = AXIsProcessTrusted()
+        #endif
         XCTAssertEqual(
             manager.accessibilityEnabled,
             expected,
-            "accessibilityEnabled must reflect AXIsProcessTrusted() after calling refreshAccessibilityStatus()"
+            "accessibilityEnabled must reflect the system permission state after calling refreshAccessibilityStatus()"
         )
     }
 
@@ -185,13 +189,18 @@ final class OnboardingViewTests: XCTestCase {
 
     func testAccessibilityEnabledInitialValueMatchesSystemState() {
         // The initial value of `accessibilityEnabled` on a fresh instance must
-        // already reflect AXIsProcessTrusted() — PermissionsManager should not
-        // start in a stale state.
+        // already reflect the system permission state — PermissionsManager should
+        // not start in a stale state.
         let manager = PermissionsManager()
+        #if APPSTORE
+        let expected = CGPreflightPostEventAccess()
+        #else
+        let expected = AXIsProcessTrusted()
+        #endif
         XCTAssertEqual(
             manager.accessibilityEnabled,
-            AXIsProcessTrusted(),
-            "Initial accessibilityEnabled must equal AXIsProcessTrusted()"
+            expected,
+            "Initial accessibilityEnabled must equal the system permission state"
         )
     }
 

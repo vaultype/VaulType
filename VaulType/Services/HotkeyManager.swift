@@ -195,6 +195,14 @@ final class HotkeyManager: @unchecked Sendable {
     private var globalMonitor: Any?
     private var localMonitor: Any?
 
+    #if APPSTORE
+    // MARK: - Carbon Hot Key (App Store — sandbox-compatible)
+
+    private var carbonEventHandler: EventHandlerRef?
+    private var registeredHotKeys: [(ref: EventHotKeyRef, binding: HotkeyBinding)] = []
+    private static let hotKeySignature: FourCharCode = 0x5654_5950 // "VTYP"
+    #endif
+
     // MARK: - State Tracking
 
     /// Tracks whether the fn key is currently held (for push-to-talk).
@@ -205,20 +213,44 @@ final class HotkeyManager: @unchecked Sendable {
     func start() throws {
         guard !isRunning else { throw HotkeyError.alreadyRunning }
 
-        // Global monitor: captures events from other apps (no accessibility needed)
+        #if APPSTORE
+        // App Store: Carbon RegisterEventHotKey (sandbox-safe) for regular keys,
+        // NSEvent flagsChanged for fn/Globe key (modifier-only, unsupported by Carbon).
+        let currentBindings = bindings
+        let fnBindings = currentBindings.filter { $0.keyCode == CGKeyCode(kVK_Function) && $0.modifiers.isEmpty }
+        let regularBindings = currentBindings.filter { !($0.keyCode == CGKeyCode(kVK_Function) && $0.modifiers.isEmpty) }
+
+        if !regularBindings.isEmpty {
+            installCarbonEventHandler()
+            for (index, binding) in regularBindings.enumerated() {
+                registerCarbonHotKey(binding, id: UInt32(index + 1))
+            }
+        }
+
+        if !fnBindings.isEmpty {
+            globalMonitor = NSEvent.addGlobalMonitorForEvents(matching: .flagsChanged) { [weak self] event in
+                self?.handleFnFlagsChanged(event)
+            }
+            localMonitor = NSEvent.addLocalMonitorForEvents(matching: .flagsChanged) { [weak self] event in
+                self?.handleFnFlagsChanged(event)
+                return event
+            }
+        }
+        #else
+        // Direct distribution: NSEvent global monitors for all events
         globalMonitor = NSEvent.addGlobalMonitorForEvents(
             matching: [.keyDown, .keyUp, .flagsChanged]
         ) { [weak self] event in
             self?.handleNSEvent(event)
         }
 
-        // Local monitor: captures events when VaulType itself is focused
         localMonitor = NSEvent.addLocalMonitorForEvents(
             matching: [.keyDown, .keyUp, .flagsChanged]
         ) { [weak self] event in
             self?.handleNSEvent(event)
             return event
         }
+        #endif
 
         DispatchQueue.main.async { [weak self] in
             self?.isRunning = true
@@ -227,6 +259,17 @@ final class HotkeyManager: @unchecked Sendable {
     }
 
     func stop() {
+        #if APPSTORE
+        for entry in registeredHotKeys {
+            UnregisterEventHotKey(entry.ref)
+        }
+        registeredHotKeys.removeAll()
+        if let handler = carbonEventHandler {
+            RemoveEventHandler(handler)
+            carbonEventHandler = nil
+        }
+        #endif
+
         if let monitor = globalMonitor {
             NSEvent.removeMonitor(monitor)
             globalMonitor = nil
@@ -244,8 +287,14 @@ final class HotkeyManager: @unchecked Sendable {
     }
 
     deinit {
-        // Cannot call stop() from deinit with @MainActor dispatch,
-        // so clean up monitors directly
+        #if APPSTORE
+        for entry in registeredHotKeys {
+            UnregisterEventHotKey(entry.ref)
+        }
+        if let handler = carbonEventHandler {
+            RemoveEventHandler(handler)
+        }
+        #endif
         if let monitor = globalMonitor {
             NSEvent.removeMonitor(monitor)
         }
@@ -279,6 +328,109 @@ final class HotkeyManager: @unchecked Sendable {
 
     // MARK: - Event Handling
 
+    #if APPSTORE
+    // MARK: - Carbon Hot Key Helpers
+
+    private func handleFnFlagsChanged(_ event: NSEvent) {
+        guard event.type == .flagsChanged else { return }
+        let currentBindings = bindings
+        for binding in currentBindings where binding.keyCode == CGKeyCode(kVK_Function) && binding.isEnabled {
+            let fnPressed = event.modifierFlags.contains(.function)
+            if fnPressed && !fnKeyDown {
+                fnKeyDown = true
+                let callback = onHotkeyDown
+                DispatchQueue.main.async { callback?(binding) }
+                Logger.hotkey.debug("Fn key down (Carbon fallback)")
+            } else if !fnPressed && fnKeyDown {
+                fnKeyDown = false
+                let callback = onHotkeyUp
+                DispatchQueue.main.async { callback?(binding) }
+                Logger.hotkey.debug("Fn key up (Carbon fallback)")
+            }
+        }
+    }
+
+    private func installCarbonEventHandler() {
+        var eventTypes = [
+            EventTypeSpec(eventClass: OSType(kEventClassKeyboard), eventKind: UInt32(kEventHotKeyPressed)),
+            EventTypeSpec(eventClass: OSType(kEventClassKeyboard), eventKind: UInt32(kEventHotKeyReleased))
+        ]
+        let selfPtr = Unmanaged.passUnretained(self).toOpaque()
+        let status = InstallEventHandler(
+            GetApplicationEventTarget(),
+            { _, event, userData -> OSStatus in
+                guard let event, let userData else { return OSStatus(eventNotHandledErr) }
+                let mgr = Unmanaged<HotkeyManager>.fromOpaque(userData).takeUnretainedValue()
+                return mgr.handleCarbonHotKeyEvent(event)
+            },
+            eventTypes.count,
+            &eventTypes,
+            selfPtr,
+            &carbonEventHandler
+        )
+        if status != noErr {
+            Logger.hotkey.error("Failed to install Carbon event handler: \(status)")
+        }
+    }
+
+    private func handleCarbonHotKeyEvent(_ event: EventRef) -> OSStatus {
+        var hotKeyID = EventHotKeyID()
+        let status = GetEventParameter(
+            event,
+            EventParamName(kEventParamDirectObject),
+            EventParamType(typeEventHotKeyID),
+            nil,
+            MemoryLayout<EventHotKeyID>.size,
+            nil,
+            &hotKeyID
+        )
+        guard status == noErr else { return OSStatus(eventNotHandledErr) }
+
+        let index = Int(hotKeyID.id) - 1
+        guard index >= 0, index < registeredHotKeys.count else { return OSStatus(eventNotHandledErr) }
+        let binding = registeredHotKeys[index].binding
+
+        let eventKind = GetEventKind(event)
+        if eventKind == UInt32(kEventHotKeyPressed) {
+            let callback = onHotkeyDown
+            DispatchQueue.main.async { callback?(binding) }
+            Logger.hotkey.debug("Carbon hotkey pressed: \(binding.displayString)")
+        } else if eventKind == UInt32(kEventHotKeyReleased) {
+            let callback = onHotkeyUp
+            DispatchQueue.main.async { callback?(binding) }
+            Logger.hotkey.debug("Carbon hotkey released: \(binding.displayString)")
+        }
+
+        return noErr
+    }
+
+    private func registerCarbonHotKey(_ binding: HotkeyBinding, id: UInt32) {
+        var carbonModifiers: UInt32 = 0
+        if binding.modifiers.contains(.maskCommand) { carbonModifiers |= UInt32(cmdKey) }
+        if binding.modifiers.contains(.maskShift) { carbonModifiers |= UInt32(shiftKey) }
+        if binding.modifiers.contains(.maskAlternate) { carbonModifiers |= UInt32(optionKey) }
+        if binding.modifiers.contains(.maskControl) { carbonModifiers |= UInt32(controlKey) }
+
+        var hotKeyID = EventHotKeyID(signature: Self.hotKeySignature, id: id)
+        var hotKeyRef: EventHotKeyRef?
+        let status = RegisterEventHotKey(
+            UInt32(binding.keyCode),
+            carbonModifiers,
+            hotKeyID,
+            GetApplicationEventTarget(),
+            0,
+            &hotKeyRef
+        )
+        if status == noErr, let ref = hotKeyRef {
+            registeredHotKeys.append((ref: ref, binding: binding))
+            Logger.hotkey.info("Registered Carbon hotkey: \(binding.displayString)")
+        } else {
+            Logger.hotkey.error("Failed to register Carbon hotkey: \(binding.displayString) (status: \(status))")
+        }
+    }
+    #endif
+
+    #if !APPSTORE
     private func handleNSEvent(_ event: NSEvent) {
         // Handle fn/Globe key via flagsChanged events
         if event.type == .flagsChanged {
@@ -321,6 +473,7 @@ final class HotkeyManager: @unchecked Sendable {
             }
         }
     }
+    #endif
 
     // MARK: - Conflict Detection
 

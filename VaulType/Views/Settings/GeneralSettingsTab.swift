@@ -1,4 +1,6 @@
+#if !APPSTORE
 import Sparkle
+#endif
 import SwiftUI
 import SwiftData
 import ServiceManagement
@@ -10,11 +12,14 @@ struct GeneralSettingsTab: View {
     @State private var launchAtLogin = false
     @State private var hotkeyString = ""
     @State private var hotkeyError: String?
+
+    #if !APPSTORE
     private let updater: SPUUpdater
 
     init(updater: SPUUpdater) {
         self.updater = updater
     }
+    #endif
 
     var body: some View {
         Form {
@@ -75,10 +80,16 @@ struct GeneralSettingsTab: View {
             }
 
             Section("Updates") {
+                #if !APPSTORE
                 Button("Check for Updates…") {
                     updater.checkForUpdates()
                 }
                 .accessibilityHint("Checks if a newer version of VaulType is available")
+                #else
+                Text("VaulType is updated automatically through the App Store.")
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+                #endif
             }
 
             Section("Text Injection") {
@@ -192,8 +203,16 @@ struct GeneralSettingsTab: View {
     }
 }
 
+#if APPSTORE
+#Preview {
+    GeneralSettingsTab()
+        .modelContainer(for: [UserSettings.self], inMemory: true)
+        .frame(width: 500, height: 400)
+}
+#else
 #Preview {
     GeneralSettingsTab(updater: SPUStandardUpdaterController(startingUpdater: false, updaterDelegate: nil, userDriverDelegate: nil).updater)
         .modelContainer(for: [UserSettings.self], inMemory: true)
         .frame(width: 500, height: 400)
 }
+#endif

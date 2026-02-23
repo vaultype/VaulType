@@ -120,6 +120,9 @@ jobs:
       # 4. Build & Archive
       # ------------------------------------------------------------------
       - name: Build Release archive
+        env:
+          RELEASE_VERSION: ${{ steps.version.outputs.version }}
+          BUILD_NUMBER: ${{ github.run_number }}
         run: |
           xcodebuild archive \
             -scheme "$SCHEME" \
@@ -130,6 +133,8 @@ jobs:
             CODE_SIGN_STYLE=Manual \
             CODE_SIGN_IDENTITY="Developer ID Application" \
             DEVELOPMENT_TEAM="${TEAM_ID}" \
+            MARKETING_VERSION="${RELEASE_VERSION}" \
+            CURRENT_PROJECT_VERSION="${BUILD_NUMBER}" \
             2>&1 | tail -30
 
       - name: Export signed app
@@ -234,20 +239,35 @@ jobs:
           echo "dmg_size=$DMG_SIZE" >> "$GITHUB_OUTPUT"
 
           # Sparkle EdDSA signature using sign_update from resolved SPM package
-          SPARKLE_BIN=$(find build/${APP_NAME}.xcarchive -name 'sign_update' -type f 2>/dev/null | head -1 || true)
+          # Search in order: DerivedData SPM artifacts (most reliable), then broader DerivedData, then build/
+          SPARKLE_BIN=$(find ~/Library/Developer/Xcode/DerivedData/VaulType-*/SourcePackages \
+            -name 'sign_update' -type f 2>/dev/null | head -1 || true)
           if [ -z "$SPARKLE_BIN" ]; then
-            SPARKLE_BIN=$(find DerivedData -name 'sign_update' -type f 2>/dev/null | head -1 || true)
+            SPARKLE_BIN=$(find ~/Library/Developer/Xcode/DerivedData \
+              -name 'sign_update' -type f 2>/dev/null | head -1 || true)
+          fi
+          if [ -z "$SPARKLE_BIN" ]; then
+            SPARKLE_BIN=$(find build -name 'sign_update' -type f 2>/dev/null | head -1 || true)
           fi
 
-          if [ -n "$SPARKLE_BIN" ] && [ -n "$SPARKLE_ED_PRIVATE_KEY" ]; then
-            chmod +x "$SPARKLE_BIN"
-            ED_SIGNATURE=$("$SPARKLE_BIN" "$DMG_PATH" 2>/dev/null || true)
-            echo "ed_signature=$ED_SIGNATURE" >> "$GITHUB_OUTPUT"
-            echo "Sparkle EdDSA signature computed"
-          else
-            echo "ed_signature=" >> "$GITHUB_OUTPUT"
-            echo "Warning: Sparkle sign_update not found or key missing, EdDSA signature skipped"
+          if [ -z "$SPARKLE_ED_PRIVATE_KEY" ]; then
+            echo "::error::SPARKLE_ED_PRIVATE_KEY secret is not set — cannot sign release for Sparkle auto-update"
+            exit 1
           fi
+
+          if [ -z "$SPARKLE_BIN" ]; then
+            echo "::error::Sparkle sign_update binary not found in DerivedData or build directory"
+            exit 1
+          fi
+
+          chmod +x "$SPARKLE_BIN"
+          ED_SIGNATURE=$("$SPARKLE_BIN" "$DMG_PATH")
+          if [ -z "$ED_SIGNATURE" ]; then
+            echo "::error::Sparkle sign_update produced empty signature"
+            exit 1
+          fi
+          echo "ed_signature=$ED_SIGNATURE" >> "$GITHUB_OUTPUT"
+          echo "Sparkle EdDSA signature computed"
 
       # ------------------------------------------------------------------
       # 8. Create GitHub Release
@@ -294,13 +314,14 @@ jobs:
             homepage "https://github.com/vaultype/VaulType"
 
             depends_on macos: ">= :sonoma"
+            depends_on arch: :arm64
 
             app "VaulType.app"
 
             zap trash: [
               "~/Library/Application Support/VaulType",
-              "~/Library/Preferences/com.vaultype.app.plist",
-              "~/Library/Caches/com.vaultype.app",
+              "~/Library/Preferences/com.vaultype.VaulType.plist",
+              "~/Library/Caches/com.vaultype.VaulType",
             ]
           end
           CASK
@@ -338,23 +359,20 @@ jobs:
           ED_SIGNATURE: ${{ steps.signatures.outputs.ed_signature }}
         run: |
           DMG_PATH="build/${APP_NAME}-${RELEASE_VERSION}.dmg"
+          ./scripts/update-appcast.sh "$RELEASE_VERSION" "$DMG_PATH" "$ED_SIGNATURE"
 
-          if [ -n "$ED_SIGNATURE" ]; then
-            ./scripts/update-appcast.sh "$RELEASE_VERSION" "$DMG_PATH" "$ED_SIGNATURE"
-          else
-            echo "Skipping appcast update — no EdDSA signature available"
-            echo "Run manually: ./scripts/update-appcast.sh $RELEASE_VERSION <dmg> <signature>"
-          fi
+      - name: Prepare appcast for deployment
+        run: |
+          mkdir -p build/gh-pages
+          cp appcast.xml build/gh-pages/
 
       - name: Deploy appcast to GitHub Pages
-        if: steps.signatures.outputs.ed_signature != ''
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: .
+          publish_dir: build/gh-pages
           publish_branch: gh-pages
           keep_files: true
-          include_files: appcast.xml
 
       # ------------------------------------------------------------------
       # 11. Cleanup

@@ -23,7 +23,11 @@ enum TextInjectionError: Error, LocalizedError {
     var errorDescription: String? {
         switch self {
         case .accessibilityNotGranted:
+            #if APPSTORE
+            return "Text input permission not granted. Please grant it in System Settings > Privacy & Security."
+            #else
             return "Accessibility permission not granted. Please enable it in System Settings."
+            #endif
         case .eventCreationFailed:
             return "Failed to create CGEvent for text injection."
         case .clipboardOperationFailed:

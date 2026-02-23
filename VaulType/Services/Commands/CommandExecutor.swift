@@ -24,6 +24,22 @@ final class CommandExecutor {
             )
         }
 
+        // App Store builds cannot use AXUIElement, AppleScript, or spawned processes
+        #if APPSTORE
+        switch command.intent {
+        case .moveWindowLeft, .moveWindowRight, .maximizeWindow, .minimizeWindow,
+             .centerWindow, .moveToNextScreen,
+             .brightnessUp, .brightnessDown, .doNotDisturbToggle, .darkModeToggle, .lockScreen:
+            Logger.commands.info("Command unavailable in App Store build: \(command.intent.rawValue)")
+            return CommandResult(
+                success: false,
+                message: "\(command.intent.displayName) is not available in this version",
+                intent: command.intent
+            )
+        default:
+            break
+        }
+        #else
         // Check accessibility permission for window management commands
         if command.intent.category == .windowManagement && command.intent != .fullScreenToggle {
             guard AXIsProcessTrusted() else {
@@ -35,6 +51,7 @@ final class CommandExecutor {
                 )
             }
         }
+        #endif
 
         Logger.commands.info("Executing command: \(command.intent.rawValue)")
 
@@ -84,7 +101,19 @@ final class CommandExecutor {
         case .showAllWindows:
             return try handleShowAllWindows()
 
-        // Window Management
+        // Volume Control (works in both builds via media key simulation)
+        case .volumeUp:
+            return try handleVolumeMediaKey(.soundUp, description: "Volume increased")
+        case .volumeDown:
+            return try handleVolumeMediaKey(.soundDown, description: "Volume decreased")
+        case .volumeMute:
+            return try handleVolumeMediaKey(.mute, description: "Toggled mute")
+        case .volumeSet:
+            let level = command.entities["level"] ?? "50"
+            return try handleSetVolumeViaMediaKeys(level)
+
+        #if !APPSTORE
+        // Window Management (AXUIElement-dependent — direct distribution only)
         case .moveWindowLeft:
             return try handleTileWindow(.left)
         case .moveWindowRight:
@@ -95,31 +124,25 @@ final class CommandExecutor {
             return try handleMinimizeWindow()
         case .centerWindow:
             return try handleTileWindow(.center)
-        case .fullScreenToggle:
-            return try handleFullScreenToggle()
         case .moveToNextScreen:
             return try handleMoveToNextScreen()
 
-        // System Control
-        case .volumeUp:
-            return try await handleMediaKey(.volumeUp)
-        case .volumeDown:
-            return try await handleMediaKey(.volumeDown)
-        case .volumeMute:
-            return try await handleMediaKey(.mute)
-        case .volumeSet:
-            let level = command.entities["level"] ?? "50"
-            return try await handleSetVolume(level)
+        // System Control (osascript-based — direct distribution only)
         case .brightnessUp:
-            return try await handleMediaKey(.brightnessUp)
+            return try await handleOsascriptMediaKey(.brightnessUp)
         case .brightnessDown:
-            return try await handleMediaKey(.brightnessDown)
+            return try await handleOsascriptMediaKey(.brightnessDown)
         case .doNotDisturbToggle:
             return try await handleDNDToggle()
         case .darkModeToggle:
             return try await handleDarkModeToggle()
         case .lockScreen:
             return try await handleLockScreen()
+        #endif
+
+        // CGEvent-based commands (work in both builds with PostEvent TCC)
+        case .fullScreenToggle:
+            return try handleFullScreenToggle()
         case .takeScreenshot:
             return try await handleScreenshot()
 
@@ -133,6 +156,13 @@ final class CommandExecutor {
             return try await handleRunShortcut(command.entities["shortcutName"] ?? "")
         case .customAlias:
             throw CommandError.executionFailed("Custom alias resolved at pipeline level")
+
+        #if APPSTORE
+        default:
+            // Window management and system control intents are blocked by the
+            // guard at the top of execute(), so this is unreachable.
+            throw CommandError.executionFailed("\(command.intent.displayName) is not available in this version")
+        #endif
         }
     }
 
@@ -225,6 +255,7 @@ final class CommandExecutor {
 
     // MARK: - Window Management Handlers
 
+    #if !APPSTORE
     private enum TilePosition {
         case left, right, maximize, center
     }
@@ -318,12 +349,6 @@ final class CommandExecutor {
         return "Window minimized"
     }
 
-    private func handleFullScreenToggle() throws -> String {
-        // Ctrl+Cmd+F toggles native full screen
-        sendKeyEvent(keyCode: 3, flags: [.maskCommand, .maskControl]) // F key
-        return "Toggled full screen"
-    }
-
     private func handleMoveToNextScreen() throws -> String {
         let screens = NSScreen.screens
         guard screens.count > 1 else {
@@ -376,27 +401,111 @@ final class CommandExecutor {
 
         return "Moved window to next screen"
     }
+    #endif
 
-    // MARK: - System Control Handlers
+    // MARK: - CGEvent-Based Handlers (sandbox-compatible with PostEvent TCC)
 
-    private enum MediaAction {
-        case volumeUp, volumeDown, mute, brightnessUp, brightnessDown
+    private func handleFullScreenToggle() throws -> String {
+        // Ctrl+Cmd+F toggles native full screen
+        sendKeyEvent(keyCode: 3, flags: [.maskCommand, .maskControl]) // F key
+        return "Toggled full screen"
     }
 
-    private func handleMediaKey(_ action: MediaAction) async throws -> String {
+    // MARK: - Volume Control (sandbox-compatible via media key events)
+
+    /// Media key types from IOKit/hidsystem/ev_keymap.h (NX_KEYTYPE_*).
+    private enum MediaKeyType: Int {
+        case soundUp   = 0  // NX_KEYTYPE_SOUND_UP
+        case soundDown = 1  // NX_KEYTYPE_SOUND_DOWN
+        case mute      = 7  // NX_KEYTYPE_MUTE
+    }
+
+    private func handleVolumeMediaKey(_ key: MediaKeyType, description: String) throws -> String {
+        guard postMediaKeyEvent(key) else {
+            throw CommandError.executionFailed("Failed to simulate media key event")
+        }
+        return description
+    }
+
+    private func handleSetVolumeViaMediaKeys(_ levelStr: String) throws -> String {
+        guard let level = Int(levelStr), level >= 0, level <= 100 else {
+            throw CommandError.invalidArgument("Volume must be 0-100")
+        }
+        // macOS has 16 volume notches (~6.25% each).
+        // Press volume-down 16 times to reach 0, then volume-up N times to reach target.
+        let targetPresses = (level + 3) / 6  // round to nearest notch (0-16)
+        for _ in 0..<16 {
+            guard postMediaKeyEvent(.soundDown) else {
+                throw CommandError.executionFailed("Failed to simulate volume down key")
+            }
+        }
+        for _ in 0..<targetPresses {
+            guard postMediaKeyEvent(.soundUp) else {
+                throw CommandError.executionFailed("Failed to simulate volume up key")
+            }
+        }
+        return "Volume set to approximately \(level)%"
+    }
+
+    /// Post a simulated media key press (key down + key up) via NSSystemDefined CGEvent.
+    /// Works in sandbox with PostEvent TCC permission.
+    private func postMediaKeyEvent(_ key: MediaKeyType) -> Bool {
+        #if APPSTORE
+        guard CGPreflightPostEventAccess() else {
+            Logger.commands.warning("PostEvent permission not granted, cannot post media key event")
+            return false
+        }
+        #endif
+
+        let keyCode = key.rawValue
+
+        // NX_SUBTYPE_AUX_CONTROL_BUTTONS = 8
+        // data1 layout: bits 16-31 = key type, bits 8-15 = flags (0xA=down, 0xB=up)
+        let downData1 = (keyCode << 16) | (0xA << 8)
+        let upData1   = (keyCode << 16) | (0xB << 8)
+
+        guard let downEvent = NSEvent.otherEvent(
+            with: .systemDefined,
+            location: .zero,
+            modifierFlags: NSEvent.ModifierFlags(rawValue: 0xA00),
+            timestamp: 0,
+            windowNumber: 0,
+            context: nil,
+            subtype: 8,
+            data1: downData1,
+            data2: -1
+        ), let upEvent = NSEvent.otherEvent(
+            with: .systemDefined,
+            location: .zero,
+            modifierFlags: NSEvent.ModifierFlags(rawValue: 0xB00),
+            timestamp: 0,
+            windowNumber: 0,
+            context: nil,
+            subtype: 8,
+            data1: upData1,
+            data2: -1
+        ) else {
+            Logger.commands.error("Failed to create media key NSEvent for key \(keyCode)")
+            return false
+        }
+
+        downEvent.cgEvent?.post(tap: .cghidEventTap)
+        upEvent.cgEvent?.post(tap: .cghidEventTap)
+        return true
+    }
+
+    // MARK: - System Control Handlers (direct distribution only)
+
+    #if !APPSTORE
+    private enum OsascriptMediaAction {
+        case brightnessUp, brightnessDown
+    }
+
+    private func handleOsascriptMediaKey(_ action: OsascriptMediaAction) async throws -> String {
         let script: String
         let description: String
 
         switch action {
-        case .volumeUp:
-            script = "set volume output volume ((output volume of (get volume settings)) + 10)"
-            description = "Volume increased"
-        case .volumeDown:
-            script = "set volume output volume ((output volume of (get volume settings)) - 10)"
-            description = "Volume decreased"
-        case .mute:
-            script = "set volume output muted (not (output muted of (get volume settings)))"
-            description = "Toggled mute"
         case .brightnessUp:
             script = """
                 tell application "System Events"
@@ -415,14 +524,6 @@ final class CommandExecutor {
 
         try await runProcess("/usr/bin/osascript", arguments: ["-e", script])
         return description
-    }
-
-    private func handleSetVolume(_ levelStr: String) async throws -> String {
-        guard let level = Int(levelStr), level >= 0, level <= 100 else {
-            throw CommandError.invalidArgument("Volume must be 0-100")
-        }
-        try await runProcess("/usr/bin/osascript", arguments: ["-e", "set volume output volume \(level)"])
-        return "Volume set to \(level)%"
     }
 
     private func handleDNDToggle() async throws -> String {
@@ -452,6 +553,41 @@ final class CommandExecutor {
         try await runProcess("/usr/bin/pmset", arguments: ["displaysleepnow"])
         return "Screen locked"
     }
+
+    private func runAppleScript(_ source: String) async throws {
+        try await runProcess("/usr/bin/osascript", arguments: ["-e", source])
+    }
+
+    /// Runs an external process asynchronously using a continuation to avoid blocking
+    /// the cooperative thread pool.
+    private func runProcess(_ path: String, arguments: [String]) async throws {
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+            let process = Process()
+            process.executableURL = URL(fileURLWithPath: path)
+            process.arguments = arguments
+
+            let pipe = Pipe()
+            process.standardError = pipe
+
+            process.terminationHandler = { finished in
+                if finished.terminationStatus == 0 {
+                    continuation.resume()
+                } else {
+                    let errorData = pipe.fileHandleForReading.readDataToEndOfFile()
+                    let stderr = String(data: errorData, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+                    let errorMsg = stderr.isEmpty ? "Process exited with code \(finished.terminationStatus)" : stderr
+                    continuation.resume(throwing: CommandError.executionFailed(errorMsg.trimmingCharacters(in: .whitespacesAndNewlines)))
+                }
+            }
+
+            do {
+                try process.run()
+            } catch {
+                continuation.resume(throwing: error)
+            }
+        }
+    }
+    #endif
 
     private func handleScreenshot() async throws -> String {
         // Cmd+Shift+5 opens screenshot UI
@@ -563,6 +699,13 @@ final class CommandExecutor {
     }
 
     private func sendKeyEvent(keyCode: CGKeyCode, flags: CGEventFlags = []) {
+        #if APPSTORE
+        guard CGPreflightPostEventAccess() else {
+            Logger.commands.warning("PostEvent permission not granted, cannot send key event")
+            return
+        }
+        #endif
+
         let src = CGEventSource(stateID: .hidSystemState)
         if let keyDown = CGEvent(keyboardEventSource: src, virtualKey: keyCode, keyDown: true),
            let keyUp = CGEvent(keyboardEventSource: src, virtualKey: keyCode, keyDown: false) {
@@ -575,39 +718,6 @@ final class CommandExecutor {
         }
     }
 
-    private func runAppleScript(_ source: String) async throws {
-        try await runProcess("/usr/bin/osascript", arguments: ["-e", source])
-    }
-
-    /// Runs an external process asynchronously using a continuation to avoid blocking
-    /// the cooperative thread pool.
-    private func runProcess(_ path: String, arguments: [String]) async throws {
-        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
-            let process = Process()
-            process.executableURL = URL(fileURLWithPath: path)
-            process.arguments = arguments
-
-            let pipe = Pipe()
-            process.standardError = pipe
-
-            process.terminationHandler = { finished in
-                if finished.terminationStatus == 0 {
-                    continuation.resume()
-                } else {
-                    let errorData = pipe.fileHandleForReading.readDataToEndOfFile()
-                    let stderr = String(data: errorData, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-                    let errorMsg = stderr.isEmpty ? "Process exited with code \(finished.terminationStatus)" : stderr
-                    continuation.resume(throwing: CommandError.executionFailed(errorMsg.trimmingCharacters(in: .whitespacesAndNewlines)))
-                }
-            }
-
-            do {
-                try process.run()
-            } catch {
-                continuation.resume(throwing: error)
-            }
-        }
-    }
 }
 
 // MARK: - Command Error

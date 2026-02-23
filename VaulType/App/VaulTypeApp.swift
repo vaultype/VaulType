@@ -5,7 +5,9 @@
 //  Created by Harun Güngörer on 13.02.2026.
 //
 
+#if !APPSTORE
 import Sparkle
+#endif
 import SwiftData
 import SwiftUI
 import os
@@ -81,11 +83,19 @@ struct VaulTypeApp: App {
         .modelContainer(modelContainer)
 
         Settings {
+            #if !APPSTORE
             SettingsView(updater: appDelegate.updaterController.updater)
                 .environment(appDelegate.appState)
                 .onAppear {
                     NSApp.activate(ignoringOtherApps: true)
                 }
+            #else
+            SettingsView()
+                .environment(appDelegate.appState)
+                .onAppear {
+                    NSApp.activate(ignoringOtherApps: true)
+                }
+            #endif
         }
         .modelContainer(modelContainer)
 

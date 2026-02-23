@@ -33,8 +33,13 @@ final class ClipboardInjector: @unchecked Sendable {
 
             Logger.injection.debug("Text written to clipboard")
 
-            // Step 3: Simulate Cmd+V paste (requires accessibility)
-            if AXIsProcessTrusted() {
+            // Step 3: Simulate Cmd+V paste (requires text injection permission)
+            #if APPSTORE
+            let canSimulatePaste = CGPreflightPostEventAccess()
+            #else
+            let canSimulatePaste = AXIsProcessTrusted()
+            #endif
+            if canSimulatePaste {
                 try await simulatePaste()
 
                 // Step 4: Wait for paste to complete
