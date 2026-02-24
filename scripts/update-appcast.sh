@@ -57,7 +57,16 @@ fi
 
 VERSION="$1"
 DMG_PATH="$2"
-ED_SIGNATURE="$3"
+ED_SIGNATURE_RAW="$3"
+
+# sign_update may output full attribute string like:
+#   sparkle:edSignature="BASE64..." length="12345"
+# Extract just the base64 signature value if needed.
+if [[ "$ED_SIGNATURE_RAW" == *'sparkle:edSignature="'* ]]; then
+    ED_SIGNATURE=$(echo "$ED_SIGNATURE_RAW" | sed -n 's/.*sparkle:edSignature="\([^"]*\)".*/\1/p')
+else
+    ED_SIGNATURE="$ED_SIGNATURE_RAW"
+fi
 
 # ---------------------------------------------------------------------------
 # Preflight
@@ -111,14 +120,16 @@ ITEM_EOF
 # ---------------------------------------------------------------------------
 # Use a temp file for safe in-place editing
 TEMP_FILE=$(mktemp)
+ITEM_FILE=$(mktemp)
+echo "$NEW_ITEM" > "$ITEM_FILE"
 
-# Insert new item before </channel>
-awk -v item="$NEW_ITEM" '
-    /<\/channel>/ { print item }
-    { print }
-' "$APPCAST" > "$TEMP_FILE"
+# Insert new item before </channel> using sed with a file read
+sed "/<\/channel>/{
+r $ITEM_FILE
+}" "$APPCAST" > "$TEMP_FILE"
 
 mv "$TEMP_FILE" "$APPCAST"
+rm -f "$ITEM_FILE"
 
 echo "[done] appcast.xml updated with v${VERSION}"
 echo ""
