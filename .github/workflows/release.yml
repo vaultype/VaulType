@@ -261,7 +261,7 @@ jobs:
           fi
 
           chmod +x "$SPARKLE_BIN"
-          ED_SIGNATURE=$("$SPARKLE_BIN" "$DMG_PATH")
+          ED_SIGNATURE=$(echo "$SPARKLE_ED_PRIVATE_KEY" | "$SPARKLE_BIN" "$DMG_PATH" -f -)
           if [ -z "$ED_SIGNATURE" ]; then
             echo "::error::Sparkle sign_update produced empty signature"
             exit 1
