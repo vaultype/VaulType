@@ -124,6 +124,7 @@ jobs:
           RELEASE_VERSION: ${{ steps.version.outputs.version }}
           BUILD_NUMBER: ${{ github.run_number }}
         run: |
+          set -o pipefail
           xcodebuild archive \
             -scheme "$SCHEME" \
             -configuration Release \
@@ -139,6 +140,7 @@ jobs:
 
       - name: Export signed app
         run: |
+          set -o pipefail
           xcodebuild -exportArchive \
             -archivePath build/${APP_NAME}.xcarchive \
             -exportOptionsPlist ExportOptions.plist \
