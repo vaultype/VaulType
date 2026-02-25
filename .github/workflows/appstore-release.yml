@@ -168,8 +168,17 @@ jobs:
 
           echo ""
           echo "=== 2. Verify entitlements ==="
-          ENTS_FILE="$RUNNER_TEMP/entitlements.xml"
-          codesign -d --entitlements :"$ENTS_FILE" "$APP_PATH" 2>/dev/null
+          ENTS_FILE="$RUNNER_TEMP/entitlements.plist"
+          codesign -d --entitlements - "$APP_PATH" > "$ENTS_FILE" 2>/dev/null
+
+          # codesign outputs binary plist (possibly with 8-byte blob header) — convert to XML
+          if ! plutil -convert xml1 "$ENTS_FILE" 2>/dev/null; then
+            # Strip 8-byte blob header (magic + length) and retry
+            dd if="$ENTS_FILE" of="$ENTS_FILE.tmp" bs=8 skip=1 2>/dev/null
+            mv "$ENTS_FILE.tmp" "$ENTS_FILE"
+            plutil -convert xml1 "$ENTS_FILE"
+          fi
+
           ENTITLEMENTS=$(cat "$ENTS_FILE")
           echo "$ENTITLEMENTS"
 
