@@ -133,6 +133,8 @@ jobs:
             -scheme "$SCHEME" \
             -configuration "Debug-AppStore" \
             -destination 'platform=macOS,arch=arm64' \
+            CODE_SIGN_IDENTITY="-" \
+            CODE_SIGNING_REQUIRED=NO \
             2>&1 | tail -30
 
       - name: Build App Store archive
