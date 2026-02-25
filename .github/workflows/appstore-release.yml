@@ -168,7 +168,9 @@ jobs:
 
           echo ""
           echo "=== 2. Verify entitlements ==="
-          ENTITLEMENTS=$(codesign -d --entitlements :- "$APP_PATH" 2>/dev/null)
+          ENTS_FILE="$RUNNER_TEMP/entitlements.xml"
+          codesign -d --entitlements :"$ENTS_FILE" "$APP_PATH" 2>/dev/null
+          ENTITLEMENTS=$(cat "$ENTS_FILE")
           echo "$ENTITLEMENTS"
 
           if ! echo "$ENTITLEMENTS" | grep -q "com.apple.security.app-sandbox"; then
