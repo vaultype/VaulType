@@ -19,7 +19,7 @@
 
 VaulType is a **privacy-first, macOS-native speech-to-text application** that lets you dictate text into any app where your cursor is active — without ever sending your voice to the cloud.
 
-Unlike cloud-dependent alternatives (MacWhisper, Superwhisper, Apple Dictation), VaulType runs entirely offline using local AI models:
+Unlike alternatives that rely on cloud services for full functionality, VaulType runs entirely offline using local AI models:
 
 - **[whisper.cpp](https://github.com/ggerganov/whisper.cpp)** for speech recognition with Metal GPU acceleration
 - **[llama.cpp](https://github.com/ggerganov/llama.cpp)** for intelligent text post-processing with local LLMs
@@ -40,7 +40,7 @@ The app lives in your macOS menu bar and provides global hotkey-activated dictat
 | **Voice Commands** | Launch apps, manage windows, and control your Mac with voice. |
 | **App-Aware Context** | Auto-selects formatting mode based on the active application. |
 | **Editable Overlay** | Review and edit transcribed text in a floating window before injection. |
-| **90+ Languages** | Full multilingual support with automatic language detection. |
+| **90+ Languages** | Multilingual support with automatic language detection using Whisper's multilingual models. English-only models available for faster performance. |
 
 ## Tech Stack
 
@@ -151,13 +151,13 @@ VaulType/
 
 | Feature | VaulType | MacWhisper | Superwhisper | Apple Dictation |
 |---------|----------|------------|--------------|-----------------|
-| Fully Offline | Yes | Partial | Partial | No |
-| Local LLM Processing | Yes | No | No | No |
+| Fully Offline | Yes | Partial | Partial | Partial |
+| Local LLM Processing | Yes | No | Partial | No |
 | Voice Commands | Yes | No | No | Limited |
-| Processing Modes | 6 | 1 | 3 | 1 |
-| App-Aware Context | Yes | No | No | No |
+| Processing Modes | 6 | 1 | 4+ | 1 |
+| App-Aware Context | Yes | No | Yes | No |
 | Open Source | Yes (GPL-3.0) | No | No | No |
-| Price | Free | $30+ | $10/mo | Free (limited) |
+| Price | Free | $80 | $8/mo | Free |
 
 ## Documentation
 

@@ -1518,7 +1518,7 @@ extension StreamingTranscriber {
 
 ## 5. Language Detection and Selection
 
-Whisper natively supports 90+ languages with automatic language identification. VaulType exposes this capability through both automatic detection and manual language selection.
+Whisper's multilingual models natively support 90+ languages with automatic language identification. English-only models are also available for faster performance when multilingual support is not needed. VaulType exposes this capability through both automatic detection and manual language selection.
 
 ### 5.1 Automatic Language Detection
 

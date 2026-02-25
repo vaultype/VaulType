@@ -36,7 +36,7 @@ Yes. VaulType is open source under the GPL-3.0 license. It's free to download, u
 
 ### What languages does VaulType support?
 
-VaulType supports **90+ languages** through Whisper, including English, Turkish, Spanish, French, German, Chinese, Japanese, Arabic, and many more. Language can be auto-detected or manually selected.
+VaulType supports **90+ languages** through Whisper's multilingual models (small, medium, large-v3), including English, Turkish, Spanish, French, German, Chinese, Japanese, Arabic, and many more. English-only models are also available for faster performance. Language can be auto-detected or manually selected.
 
 ### Does VaulType work offline?
 
@@ -269,13 +269,13 @@ Try these in order:
 
 | Feature | VaulType | Apple Dictation |
 |---------|----------|-----------------|
-| Privacy | 100% local | Sends audio to Apple servers |
+| Privacy | 100% local | Partial (on-device + cloud) |
 | LLM post-processing | Yes (6 modes) | No |
 | Voice commands | Yes (app launch, window mgmt) | Limited (system commands only) |
 | Custom modes | Yes | No |
 | Open source | Yes (GPL-3.0) | No |
 | Offline support | Full | Partial (basic offline mode) |
-| Works in Terminal | Yes | Limited |
+| Text injection | All apps | All apps |
 | App-aware context | Yes | No |
 | Cost | Free | Free with macOS |
 
@@ -283,14 +283,14 @@ Try these in order:
 
 | Feature | VaulType | Superwhisper | VoiceInk |
 |---------|----------|-------------|----------|
-| Pricing | Free (GPL-3.0) | $10/month | $30 one-time |
-| Dual AI pipeline (STT + LLM) | Yes | No | No |
+| Pricing | Free (GPL-3.0) | $8/month | $30 one-time |
+| Dual AI pipeline (STT + LLM) | Yes (both local) | Partial (local + cloud) | No |
 | Voice commands | Yes | No | No |
-| Processing modes | 6 | 3 | Basic |
+| Processing modes | 6 | 4+ | Basic |
 | Zero-network | Yes | Partial | Partial |
 | Open source | Yes | No | No |
 | Developer-focused modes | Yes (Code, Prompt) | No | No |
-| App-aware context | Yes | Limited | No |
+| App-aware context | Yes | Yes | No |
 
 ### How is VaulType different from MacWhisper?
 
