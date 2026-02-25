@@ -128,6 +128,7 @@ jobs:
       # ------------------------------------------------------------------
       - name: Run tests (App Store config)
         run: |
+          set -o pipefail
           xcodebuild test \
             -scheme "$SCHEME" \
             -configuration "Debug-AppStore" \
@@ -139,6 +140,7 @@ jobs:
           RELEASE_VERSION: ${{ steps.version.outputs.version }}
           BUILD_NUMBER: ${{ github.run_number }}
         run: |
+          set -o pipefail
           # App Store builds use 1000+ offset to distinguish from direct distribution (1-999)
           APPSTORE_BUILD_NUMBER=$((BUILD_NUMBER + 1000))
           echo "App Store build number: $APPSTORE_BUILD_NUMBER (base: $BUILD_NUMBER)"
@@ -149,7 +151,8 @@ jobs:
             -destination 'platform=macOS,arch=arm64' \
             -archivePath build/${APP_NAME}-AppStore.xcarchive \
             ONLY_ACTIVE_ARCH=YES \
-            CODE_SIGN_STYLE=Automatic \
+            CODE_SIGN_STYLE=Manual \
+            CODE_SIGN_IDENTITY="3rd Party Mac Developer Application" \
             DEVELOPMENT_TEAM="${TEAM_ID}" \
             MARKETING_VERSION="${RELEASE_VERSION}" \
             CURRENT_PROJECT_VERSION="${APPSTORE_BUILD_NUMBER}" \
@@ -158,6 +161,11 @@ jobs:
       - name: Verify App Store build integrity
         run: |
           APP_PATH="build/${APP_NAME}-AppStore.xcarchive/Products/Applications/${APP_NAME}.app"
+
+          if [ ! -d "$APP_PATH" ]; then
+            echo "::error::Archive app not found at $APP_PATH"
+            exit 1
+          fi
 
           echo "=== 1. Verify Sparkle.framework is absent ==="
           if [ -d "$APP_PATH/Contents/Frameworks/Sparkle.framework" ]; then
@@ -221,6 +229,7 @@ jobs:
           APP_STORE_CONNECT_API_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_API_ISSUER_ID }}
           APP_STORE_CONNECT_API_KEY_P8: ${{ secrets.APP_STORE_CONNECT_API_KEY_P8 }}
         run: |
+          set -o pipefail
           API_KEY_PATH="$RUNNER_TEMP/AuthKey_${APP_STORE_CONNECT_API_KEY_ID}.p8"
           echo "$APP_STORE_CONNECT_API_KEY_P8" > "$API_KEY_PATH"
 
