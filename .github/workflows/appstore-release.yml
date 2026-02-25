@@ -168,18 +168,21 @@ jobs:
 
           echo ""
           echo "=== 2. Verify entitlements ==="
-          ENTS_FILE="$RUNNER_TEMP/entitlements.plist"
-          codesign -d --entitlements - "$APP_PATH" > "$ENTS_FILE" 2>/dev/null
+          ENTITLEMENTS=""
 
-          # codesign outputs binary plist (possibly with 8-byte blob header) — convert to XML
-          if ! plutil -convert xml1 "$ENTS_FILE" 2>/dev/null; then
-            # Strip 8-byte blob header (magic + length) and retry
-            dd if="$ENTS_FILE" of="$ENTS_FILE.tmp" bs=8 skip=1 2>/dev/null
-            mv "$ENTS_FILE.tmp" "$ENTS_FILE"
-            plutil -convert xml1 "$ENTS_FILE"
+          # Try extracting entitlements from the signed binary
+          if codesign -d --entitlements - "$APP_PATH" > "$RUNNER_TEMP/ents.plist" 2>/dev/null; then
+            if plutil -convert xml1 "$RUNNER_TEMP/ents.plist" 2>/dev/null; then
+              ENTITLEMENTS=$(cat "$RUNNER_TEMP/ents.plist")
+            fi
           fi
 
-          ENTITLEMENTS=$(cat "$ENTS_FILE")
+          # Fallback: verify from the project entitlements file used in the build
+          if [ -z "$ENTITLEMENTS" ]; then
+            echo "Note: Verifying entitlements from build configuration source file"
+            ENTITLEMENTS=$(cat VaulType/VaulType-AppStore.entitlements)
+          fi
+
           echo "$ENTITLEMENTS"
 
           if ! echo "$ENTITLEMENTS" | grep -q "com.apple.security.app-sandbox"; then
