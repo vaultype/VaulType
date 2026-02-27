@@ -680,7 +680,7 @@ extension ModelContainer {
 
 ```bash
 # 1. Clone with submodules (whisper.cpp, llama.cpp)
-git clone --recursive https://github.com/user/vaultype.git
+git clone --recursive https://github.com/vaultype/VaulType.git
 cd vaultype
 
 # 2. Build C/C++ dependencies with Metal support
@@ -1079,4 +1079,4 @@ final class WhisperContext {
 
 ---
 
-*This document is part of the [VaulType Documentation](../). For questions or corrections, please open an issue on the [GitHub repository](https://github.com/user/vaultype).*
+*This document is part of the [VaulType Documentation](../). For questions or corrections, please open an issue on the [GitHub repository](https://github.com/vaultype/VaulType).*

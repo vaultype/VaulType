@@ -3128,4 +3128,4 @@ final class AudioBridge: @unchecked Sendable {
 
 ---
 
-*This document is part of the [VaulType Documentation](../). For questions, corrections, or API proposals, please open an issue on the [GitHub repository](https://github.com/user/vaultype).*
+*This document is part of the [VaulType Documentation](../). For questions, corrections, or API proposals, please open an issue on the [GitHub repository](https://github.com/vaultype/VaulType).*

@@ -2957,4 +2957,4 @@ struct CleanupSheetView: View {
 
 ---
 
-*This document is part of the [VaulType Documentation](../). For questions or corrections, please open an issue on the [GitHub repository](https://github.com/user/vaultype).*
+*This document is part of the [VaulType Documentation](../). For questions or corrections, please open an issue on the [GitHub repository](https://github.com/vaultype/VaulType).*
