@@ -1,0 +1,6 @@
+// Local build configuration overrides (not committed to git).
+// Copy this file to Local.xcconfig and fill in your values.
+//
+//   cp Configuration/Local.xcconfig.example Configuration/Local.xcconfig
+
+DEVELOPMENT_TEAM = YOUR_TEAM_ID_HERE

@@ -31,6 +31,7 @@
 		680B18FC2F3FA6A7007650D7 /* VaulType.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = VaulType.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		680B190B2F3FA6A8007650D7 /* VaulTypeTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = VaulTypeTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		680B19152F3FA6A8007650D7 /* VaulTypeUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = VaulTypeUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		CC000001BBBB000100000001 /* Shared.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Shared.xcconfig; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -93,6 +94,7 @@
 		680B18F32F3FA6A7007650D7 = {
 			isa = PBXGroup;
 			children = (
+				CC000002BBBB000200000002 /* Configuration */,
 				680B18FE2F3FA6A7007650D7 /* VaulType */,
 				680B190E2F3FA6A8007650D7 /* VaulTypeTests */,
 				680B19182F3FA6A8007650D7 /* VaulTypeUITests */,
@@ -108,6 +110,14 @@
 				680B19152F3FA6A8007650D7 /* VaulTypeUITests.xctest */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		CC000002BBBB000200000002 /* Configuration */ = {
+			isa = PBXGroup;
+			children = (
+				CC000001BBBB000100000001 /* Shared.xcconfig */,
+			);
+			path = Configuration;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -348,6 +358,7 @@
 /* Begin XCBuildConfiguration section */
 		680B191D2F3FA6A8007650D7 /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = CC000001BBBB000100000001 /* Shared.xcconfig */;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
@@ -381,7 +392,6 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = dwarf;
-				DEVELOPMENT_TEAM = "";
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = NO;
@@ -412,6 +422,7 @@
 		};
 		680B191E2F3FA6A8007650D7 /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = CC000001BBBB000100000001 /* Shared.xcconfig */;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
@@ -445,7 +456,6 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
-				DEVELOPMENT_TEAM = "";
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = NO;
@@ -468,6 +478,7 @@
 		};
 		680B19202F3FA6A8007650D7 /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = CC000001BBBB000100000001 /* Shared.xcconfig */;
 			buildSettings = {
 				ARCHS = arm64;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
@@ -476,7 +487,6 @@
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = "";
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
@@ -528,6 +538,7 @@
 		};
 		680B19212F3FA6A8007650D7 /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = CC000001BBBB000100000001 /* Shared.xcconfig */;
 			buildSettings = {
 				ARCHS = arm64;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
@@ -536,7 +547,6 @@
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = "";
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
@@ -588,11 +598,11 @@
 		};
 		680B19232F3FA6A8007650D7 /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = CC000001BBBB000100000001 /* Shared.xcconfig */;
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = "";
 				GENERATE_INFOPLIST_FILE = YES;
 				HEADER_SEARCH_PATHS = (
 					"$(SRCROOT)/WhisperKit/Sources/CWhisper/include",
@@ -613,11 +623,11 @@
 		};
 		680B19242F3FA6A8007650D7 /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = CC000001BBBB000100000001 /* Shared.xcconfig */;
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = "";
 				GENERATE_INFOPLIST_FILE = YES;
 				HEADER_SEARCH_PATHS = (
 					"$(SRCROOT)/WhisperKit/Sources/CWhisper/include",
@@ -638,10 +648,10 @@
 		};
 		680B19262F3FA6A8007650D7 /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = CC000001BBBB000100000001 /* Shared.xcconfig */;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = "";
 				GENERATE_INFOPLIST_FILE = YES;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.vaultype.VaulTypeUITests;
@@ -657,10 +667,10 @@
 		};
 		680B19272F3FA6A8007650D7 /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = CC000001BBBB000100000001 /* Shared.xcconfig */;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = "";
 				GENERATE_INFOPLIST_FILE = YES;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.vaultype.VaulTypeUITests;
@@ -676,6 +686,7 @@
 		};
 		A1B2C3D4E5F6A7B8C9D0E1F1 /* Debug-AppStore */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = CC000001BBBB000100000001 /* Shared.xcconfig */;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
@@ -709,7 +720,6 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = dwarf;
-				DEVELOPMENT_TEAM = "";
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = NO;
@@ -740,6 +750,7 @@
 		};
 		A1B2C3D4E5F6A7B8C9D0E1F2 /* Release-AppStore */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = CC000001BBBB000100000001 /* Shared.xcconfig */;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
@@ -773,7 +784,6 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
-				DEVELOPMENT_TEAM = "";
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = NO;
@@ -797,6 +807,7 @@
 		};
 		A1B2C3D4E5F6A7B8C9D0E1F3 /* Debug-AppStore */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = CC000001BBBB000100000001 /* Shared.xcconfig */;
 			buildSettings = {
 				ARCHS = arm64;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
@@ -805,7 +816,6 @@
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = "";
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
@@ -858,6 +868,7 @@
 		};
 		A1B2C3D4E5F6A7B8C9D0E1F4 /* Release-AppStore */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = CC000001BBBB000100000001 /* Shared.xcconfig */;
 			buildSettings = {
 				ARCHS = arm64;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
@@ -866,7 +877,6 @@
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = "";
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
@@ -919,11 +929,11 @@
 		};
 		A1B2C3D4E5F6A7B8C9D0E1F5 /* Debug-AppStore */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = CC000001BBBB000100000001 /* Shared.xcconfig */;
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = "";
 				GENERATE_INFOPLIST_FILE = YES;
 				HEADER_SEARCH_PATHS = (
 					"$(SRCROOT)/WhisperKit/Sources/CWhisper/include",
@@ -944,11 +954,11 @@
 		};
 		A1B2C3D4E5F6A7B8C9D0E1F6 /* Release-AppStore */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = CC000001BBBB000100000001 /* Shared.xcconfig */;
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = "";
 				GENERATE_INFOPLIST_FILE = YES;
 				HEADER_SEARCH_PATHS = (
 					"$(SRCROOT)/WhisperKit/Sources/CWhisper/include",
@@ -969,10 +979,10 @@
 		};
 		A1B2C3D4E5F6A7B8C9D0E1F7 /* Debug-AppStore */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = CC000001BBBB000100000001 /* Shared.xcconfig */;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = "";
 				GENERATE_INFOPLIST_FILE = YES;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.vaultype.VaulTypeUITests;
@@ -988,10 +998,10 @@
 		};
 		A1B2C3D4E5F6A7B8C9D0E1F8 /* Release-AppStore */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = CC000001BBBB000100000001 /* Shared.xcconfig */;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = "";
 				GENERATE_INFOPLIST_FILE = YES;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.vaultype.VaulTypeUITests;

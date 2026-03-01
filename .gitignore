@@ -46,6 +46,9 @@ fastlane/README.md
 # Code Injection
 iOSInjectionProject/
 
+# Local developer config
+Configuration/Local.xcconfig
+
 # Vendored C/C++ sources (cloned by scripts/setup-whisper.sh)
 vendor/
 

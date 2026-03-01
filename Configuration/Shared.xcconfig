@@ -1,0 +1,7 @@
+// Shared build configuration for VaulType
+// This file is committed to version control.
+//
+// Developer-specific overrides (like DEVELOPMENT_TEAM) go in Local.xcconfig,
+// which is gitignored. Copy Local.xcconfig.example to get started.
+
+#include? "Local.xcconfig"
