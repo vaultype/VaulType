@@ -7,4 +7,17 @@
         <language>en</language>
         <!-- Items will be added by scripts/update-appcast.sh on each release -->
     </channel>
+        <item>
+            <title>Version 1.1.1</title>
+            <pubDate>Sun, 01 Mar 2026 12:09:00 +0000</pubDate>
+            <sparkle:version>1.1.1</sparkle:version>
+            <sparkle:shortVersionString>1.1.1</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+            <enclosure
+                url="https://github.com/vaultype/VaulType/releases/download/v1.1.1/VaulType-1.1.1.dmg"
+                length="3610524"
+                type="application/octet-stream"
+                sparkle:edSignature="eQD0WwjUmBsgoYHUWjk58DqbAHZm9IqvYyXVs4gG3S2m4xis6cYfzdbbVMVTVmFxFhm8QJhudTr+Z5VkCH3zCw=="
+            />
+        </item>
 </rss>
