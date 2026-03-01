@@ -14,7 +14,7 @@ env:
   XCODE_VERSION: "16.2"
   APP_NAME: "VaulType"
   SCHEME: "VaulType"
-  TEAM_ID: "__TEAM_ID__"
+  TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
 
 jobs:
   release:
@@ -137,6 +137,9 @@ jobs:
             MARKETING_VERSION="${RELEASE_VERSION}" \
             CURRENT_PROJECT_VERSION="${BUILD_NUMBER}" \
             2>&1 | tail -30
+
+      - name: Inject Team ID into ExportOptions
+        run: sed -i '' "s/__TEAM_ID__/${TEAM_ID}/" ExportOptions.plist
 
       - name: Export signed app
         run: |

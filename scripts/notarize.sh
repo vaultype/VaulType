@@ -9,7 +9,7 @@
 #   Keychain profile (local dev): Credentials are stored via:
 #     xcrun notarytool store-credentials "VaulType-Notarize" \
 #       --apple-id "your@email.com" \
-#       --team-id "__TEAM_ID__" \
+#       --team-id "YOUR_TEAM_ID" \
 #       --password "app-specific-password"
 #
 #   CI mode (when CI=true): Reads credentials from environment variables:
@@ -48,7 +48,7 @@ Modes:
 Examples:
   ./scripts/notarize.sh build/VaulType.app
   ./scripts/notarize.sh build/VaulType.dmg
-  CI=true APPLE_ID=dev@example.com APPLE_TEAM_ID=__TEAM_ID__ APPLE_APP_PASSWORD=xxxx-xxxx \\
+  CI=true APPLE_ID=dev@example.com APPLE_TEAM_ID=YOUR_TEAM_ID APPLE_APP_PASSWORD=xxxx-xxxx \\
     ./scripts/notarize.sh build/VaulType.dmg
 EOF
 }

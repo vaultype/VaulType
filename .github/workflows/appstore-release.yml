@@ -20,7 +20,7 @@ env:
   APP_NAME: "VaulType"
   SCHEME: "VaulType AppStore"
   CONFIGURATION: "Release-AppStore"
-  TEAM_ID: "__TEAM_ID__"
+  TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
 
 jobs:
   appstore-release:
@@ -226,6 +226,9 @@ jobs:
       # ------------------------------------------------------------------
       # 5. Export & Upload to App Store Connect
       # ------------------------------------------------------------------
+      - name: Inject Team ID into ExportOptions
+        run: sed -i '' "s/__TEAM_ID__/${TEAM_ID}/" ExportOptions-AppStore.plist
+
       - name: Export and upload to App Store Connect
         env:
           APP_STORE_CONNECT_API_KEY_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}
