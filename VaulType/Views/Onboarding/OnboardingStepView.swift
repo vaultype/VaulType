@@ -47,7 +47,7 @@ struct OnboardingStepView: View {
     OnboardingStepView(
         iconName: "waveform.circle.fill",
         title: "Welcome to VaulType",
-        description: "Privacy-first speech-to-text that runs entirely on your Mac."
+        description: "Privacy-first speech-to-text that runs entirely on your device."
     )
     .frame(width: 520, height: 380)
 }

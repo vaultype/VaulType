@@ -37,7 +37,7 @@ struct CommandSettingsTab: View {
                         saveSettings()
                     }
                     .help("When enabled, VaulType listens for the wake phrase and executes voice commands.")
-                    .accessibilityHint("When on, say the wake phrase followed by a command to control your Mac by voice")
+                    .accessibilityHint("When on, say the wake phrase followed by a command to control your computer by voice")
 
                 LabeledContent("Wake Phrase") {
                     TextField("e.g. Hey Type", text: $commandWakePhrase)

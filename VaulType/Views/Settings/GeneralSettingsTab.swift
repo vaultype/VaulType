@@ -56,7 +56,7 @@ struct GeneralSettingsTab: View {
                         settings?.launchAtLogin = newValue
                         saveSettings()
                     }
-                    .accessibilityHint("Automatically starts VaulType when you log in to your Mac")
+                    .accessibilityHint("Automatically starts VaulType when you log in to your computer")
 
                 Toggle("Show Overlay After Dictation", isOn: Binding(
                     get: { settings?.showOverlayAfterDictation ?? true },
