@@ -9,6 +9,8 @@ struct OnboardingView: View {
     @State private var permissionsManager = PermissionsManager()
     @State private var microphoneGranted: Bool = false
     @State private var pollingTimer: Timer?
+    @State private var whisperDownloader = ModelDownloader()
+    @State private var llmDownloader = ModelDownloader()
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -18,6 +20,11 @@ struct OnboardingView: View {
     /// The default whisper model, looked up from the full model list.
     private var defaultWhisperModel: ModelInfo? {
         allModels.first { $0.isDefault && $0.type == .whisper }
+    }
+
+    /// The default LLM model, looked up from the full model list.
+    private var defaultLLMModel: ModelInfo? {
+        allModels.first { $0.isDefault && $0.type == .llm }
     }
 
     private let totalSteps = 5
@@ -62,11 +69,19 @@ struct OnboardingView: View {
 
                 Spacer()
 
-                if currentStep < totalSteps - 1 {
+                if currentStep == 3 && !bothModelsReady && !isDownloading {
+                    Button("Download Later") {
+                        if reduceMotion { currentStep += 1 } else { withAnimation { currentStep += 1 } }
+                    }
+                    .foregroundStyle(.secondary)
+                    .accessibilityLabel("Download later")
+                    .accessibilityHint("Skips model download. You can download models later in Settings.")
+                } else if currentStep < totalSteps - 1 {
                     Button("Continue") {
                         if reduceMotion { currentStep += 1 } else { withAnimation { currentStep += 1 } }
                     }
                     .buttonStyle(.borderedProminent)
+                    .disabled(currentStep == 3 && !bothModelsReady)
                     .accessibilityLabel("Continue")
                     .accessibilityHint("Proceeds to the next setup step")
                 } else {
@@ -240,59 +255,118 @@ struct OnboardingView: View {
         VStack(spacing: 20) {
             Spacer()
 
-            if let model = defaultWhisperModel, model.isDownloaded {
+            if bothModelsReady {
                 Image(systemName: "checkmark.circle.fill")
                     .font(.system(size: 64))
                     .foregroundStyle(Color.green)
+            } else if isDownloading {
+                Image(systemName: "arrow.down.circle.fill")
+                    .font(.system(size: 64))
+                    .foregroundStyle(Color.accentColor)
             } else {
                 Image(systemName: "arrow.down.circle.fill")
                     .font(.system(size: 64))
                     .foregroundStyle(Color.accentColor)
             }
 
-            Text("Download Speech Model")
+            Text("Download Models")
                 .font(.title)
                 .fontWeight(.bold)
 
-            Text("VaulType uses a local AI model for speech recognition. The default model (Base English, ~150 MB) offers a good balance of speed and accuracy.")
-                .font(.body)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-                .frame(maxWidth: 380)
-
-            if let model = defaultWhisperModel {
-                if model.isDownloaded {
-                    Label("\(model.name) is ready", systemImage: "checkmark.circle.fill")
-                        .foregroundStyle(Color.green)
-                        .font(.callout)
-                } else if let progress = model.downloadProgress {
-                    VStack(spacing: 8) {
-                        ProgressView(value: progress)
-                            .frame(maxWidth: 300)
-                        Text("Downloading \(model.name)… \(Int(progress * 100))%")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                } else if let errorMsg = model.lastDownloadError {
-                    Text("Download failed: \(errorMsg)")
-                        .font(.caption)
-                        .foregroundStyle(.red)
-                        .multilineTextAlignment(.center)
-                        .frame(maxWidth: 340)
-                } else {
-                    Text("Download will start automatically")
-                        .font(.caption)
-                        .foregroundStyle(.tertiary)
-                }
+            if bothModelsReady {
+                Text("Models are ready. You're good to go!")
+                    .font(.body)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                    .frame(maxWidth: 380)
+            } else if isDownloading {
+                Text("Downloading required models. This may take a minute depending on your connection.")
+                    .font(.body)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                    .frame(maxWidth: 380)
             } else {
-                Text("Download will start automatically")
-                    .font(.caption)
-                    .foregroundStyle(.tertiary)
+                Text("VaulType needs two small AI models to work — one for speech recognition (~150 MB) and one for text processing (~460 MB). Everything runs locally on your device.")
+                    .font(.body)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                    .frame(maxWidth: 380)
+            }
+
+            if bothModelsReady || isDownloading {
+                VStack(spacing: 12) {
+                    modelProgressRow(model: defaultWhisperModel, label: "Speech Model")
+                    modelProgressRow(model: defaultLLMModel, label: "Text Processing Model")
+                }
+                .frame(maxWidth: 340)
+            } else if hasDownloadError {
+                VStack(spacing: 12) {
+                    modelProgressRow(model: defaultWhisperModel, label: "Speech Model")
+                    modelProgressRow(model: defaultLLMModel, label: "Text Processing Model")
+
+                    Button("Retry Download") {
+                        startModelDownloads()
+                    }
+                    .buttonStyle(.bordered)
+                }
+                .frame(maxWidth: 340)
+            } else {
+                Button("Download Now") {
+                    startModelDownloads()
+                }
+                .buttonStyle(.borderedProminent)
+                .accessibilityLabel("Download models now")
+                .accessibilityHint("Downloads the required speech and text processing models")
             }
 
             Spacer()
         }
         .padding(.horizontal, 40)
+    }
+
+    private var bothModelsReady: Bool {
+        let whisperReady = defaultWhisperModel?.fileExistsOnDisk ?? false
+        let llmReady = defaultLLMModel?.fileExistsOnDisk ?? false
+        return whisperReady && llmReady
+    }
+
+    private var isDownloading: Bool {
+        let whisperDownloading = defaultWhisperModel?.downloadProgress != nil
+        let llmDownloading = defaultLLMModel?.downloadProgress != nil
+        return whisperDownloading || llmDownloading
+    }
+
+    private var hasDownloadError: Bool {
+        let whisperError = defaultWhisperModel?.lastDownloadError != nil
+        let llmError = defaultLLMModel?.lastDownloadError != nil
+        return (whisperError || llmError) && !isDownloading
+    }
+
+    @ViewBuilder
+    private func modelProgressRow(model: ModelInfo?, label: String) -> some View {
+        if let model {
+            if model.fileExistsOnDisk {
+                Label("\(model.name) is ready", systemImage: "checkmark.circle.fill")
+                    .foregroundStyle(Color.green)
+                    .font(.callout)
+            } else if let progress = model.downloadProgress {
+                VStack(spacing: 4) {
+                    ProgressView(value: progress)
+                    Text("Downloading \(model.name)… \(Int(progress * 100))%")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            } else if let errorMsg = model.lastDownloadError {
+                Label("\(label): \(errorMsg)", systemImage: "exclamationmark.triangle.fill")
+                    .foregroundStyle(.red)
+                    .font(.caption)
+                    .multilineTextAlignment(.center)
+            } else {
+                Label(model.name, systemImage: "circle")
+                    .foregroundStyle(.secondary)
+                    .font(.callout)
+            }
+        }
     }
 
     private var completionStep: some View {
@@ -319,6 +393,17 @@ struct OnboardingView: View {
 
     private func refreshMicrophoneStatus() {
         microphoneGranted = AVCaptureDevice.authorizationStatus(for: .audio) == .authorized
+    }
+
+    // MARK: - Model Downloads
+
+    private func startModelDownloads() {
+        if let model = defaultWhisperModel, !model.fileExistsOnDisk, model.downloadProgress == nil {
+            whisperDownloader.download(model)
+        }
+        if let model = defaultLLMModel, !model.fileExistsOnDisk, model.downloadProgress == nil {
+            llmDownloader.download(model)
+        }
     }
 
     // MARK: - Completion

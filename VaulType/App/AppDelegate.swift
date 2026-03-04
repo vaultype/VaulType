@@ -394,9 +394,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 await controller.loadWhisperModel(fileName: whisperFileName)
             }
 
-            // Auto-download default models if needed
-            self.autoDownloadDefaultModelIfNeeded(in: context)
-            self.autoDownloadDefaultLLMModelIfNeeded(in: context)
+            // Auto-download default models if needed (skip during onboarding — let the user trigger it)
+            if self.appState.onboardingCompleted {
+                self.autoDownloadDefaultModelIfNeeded(in: context)
+                self.autoDownloadDefaultLLMModelIfNeeded(in: context)
+            }
 
             // Load LLM model if configured
             if let llmModelName = self.currentLLMModel {
@@ -443,7 +445,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         guard let models = try? context.fetch(descriptor) else { return }
 
         let defaultModel = models.first { $0.isDefault && $0.type == .whisper }
-        guard let model = defaultModel, !model.isDownloaded, !model.fileExistsOnDisk else { return }
+        guard let model = defaultModel, !model.fileExistsOnDisk else { return }
+        if model.isDownloaded {
+            model.isDownloaded = false
+        }
 
         Logger.general.info("Default whisper model not downloaded — auto-downloading \(model.name)")
         let downloader = ModelDownloader()
@@ -463,7 +468,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         guard let models = try? context.fetch(descriptor) else { return }
 
         let defaultModel = models.first { $0.isDefault && $0.type == .llm }
-        guard let model = defaultModel, !model.isDownloaded, !model.fileExistsOnDisk else { return }
+        guard let model = defaultModel, !model.fileExistsOnDisk else { return }
+        if model.isDownloaded {
+            model.isDownloaded = false
+        }
 
         Logger.general.info("Default LLM model not downloaded — auto-downloading \(model.name)")
         let downloader = ModelDownloader()
