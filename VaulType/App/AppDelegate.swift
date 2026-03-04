@@ -93,6 +93,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         )
 
         startPipeline()
+
+        // Show onboarding immediately on first launch
+        if !appState.onboardingCompleted {
+            NotificationCenter.default.post(name: .showOnboarding, object: nil)
+        }
     }
 
     @objc private func handleSettingsChanged() {

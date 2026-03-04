@@ -69,7 +69,7 @@ struct VaulTypeApp: App {
         MenuBarExtra {
             MenuBarView(appState: appDelegate.appState)
         } label: {
-            Image(nsImage: appDelegate.appState.menuBarImage)
+            MenuBarLabel(appState: appDelegate.appState)
         }
         .menuBarExtraStyle(.window)
         .modelContainer(modelContainer)
@@ -115,5 +115,21 @@ struct VaulTypeApp: App {
         .windowResizability(.contentSize)
         .defaultPosition(.center)
         .modelContainer(modelContainer)
+    }
+}
+
+// MARK: - Menu Bar Label
+
+/// Helper view that renders the menu bar icon and opens the onboarding window on first launch.
+/// Needed because `@Environment(\.openWindow)` is only available inside a SwiftUI `View`.
+private struct MenuBarLabel: View {
+    var appState: AppState
+    @Environment(\.openWindow) private var openWindow
+
+    var body: some View {
+        Image(nsImage: appState.menuBarImage)
+            .onReceive(NotificationCenter.default.publisher(for: .showOnboarding)) { _ in
+                openWindow(id: "onboarding")
+            }
     }
 }
