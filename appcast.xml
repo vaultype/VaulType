@@ -8,16 +8,16 @@
         <!-- Items will be added by scripts/update-appcast.sh on each release -->
     </channel>
         <item>
-            <title>Version 1.1.1</title>
-            <pubDate>Sun, 01 Mar 2026 12:09:00 +0000</pubDate>
-            <sparkle:version>1.1.1</sparkle:version>
-            <sparkle:shortVersionString>1.1.1</sparkle:shortVersionString>
+            <title>Version 1.1.2</title>
+            <pubDate>Wed, 04 Mar 2026 20:48:15 +0000</pubDate>
+            <sparkle:version>1.1.2</sparkle:version>
+            <sparkle:shortVersionString>1.1.2</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
             <enclosure
-                url="https://github.com/vaultype/VaulType/releases/download/v1.1.1/VaulType-1.1.1.dmg"
-                length="3610524"
+                url="https://github.com/vaultype/VaulType/releases/download/v1.1.2/VaulType-1.1.2.dmg"
+                length="3624045"
                 type="application/octet-stream"
-                sparkle:edSignature="eQD0WwjUmBsgoYHUWjk58DqbAHZm9IqvYyXVs4gG3S2m4xis6cYfzdbbVMVTVmFxFhm8QJhudTr+Z5VkCH3zCw=="
+                sparkle:edSignature="IhD8+z7LTWVUM1Kg/VpCaDIQP4VRvef7PIZUOEotInTxi3+ry92cbBV+17cnFmnaND23l1gtvK6gl6Wo1Q6RCw=="
             />
         </item>
 </rss>
