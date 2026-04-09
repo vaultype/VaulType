@@ -14,12 +14,19 @@ final class ClipboardInjector: @unchecked Sendable {
     func inject(_ text: String) async throws {
         Logger.injection.info("Clipboard injection started for \(text.count) characters")
 
-        // Step 1: Save current clipboard state
+        // Step 1: Save current clipboard state by deep-copying data.
+        // NSPasteboardItem references are invalidated after clearContents(),
+        // so we must snapshot the raw data for each type before clearing.
         let pasteboard = NSPasteboard.general
         let originalChangeCount = pasteboard.changeCount
-        let originalItems = pasteboard.pasteboardItems
+        let savedData: [[(NSPasteboard.PasteboardType, Data)]] = (pasteboard.pasteboardItems ?? []).map { item in
+            item.types.compactMap { type in
+                guard let data = item.data(forType: type) else { return nil }
+                return (type, data)
+            }
+        }
 
-        Logger.injection.debug("Saved clipboard state (changeCount: \(originalChangeCount))")
+        Logger.injection.debug("Saved clipboard state (changeCount: \(originalChangeCount), items: \(savedData.count))")
 
         do {
             // Step 2: Clear and write new text to clipboard
@@ -47,11 +54,7 @@ final class ClipboardInjector: @unchecked Sendable {
 
                 // Step 5: Restore original clipboard if it hasn't changed
                 if pasteboard.changeCount == originalChangeCount + 1 {
-                    pasteboard.clearContents()
-                    if let items = originalItems {
-                        pasteboard.writeObjects(items)
-                        Logger.injection.debug("Original clipboard restored")
-                    }
+                    restoreClipboard(pasteboard: pasteboard, savedData: savedData)
                 } else {
                     Logger.injection.debug("Clipboard changed during paste — skipping restore")
                 }
@@ -64,13 +67,27 @@ final class ClipboardInjector: @unchecked Sendable {
 
         } catch {
             // Attempt to restore clipboard even on failure
-            if pasteboard.changeCount == originalChangeCount + 1, let items = originalItems {
-                pasteboard.clearContents()
-                pasteboard.writeObjects(items)
-                Logger.injection.debug("Clipboard restored after error")
+            if pasteboard.changeCount == originalChangeCount + 1 {
+                restoreClipboard(pasteboard: pasteboard, savedData: savedData)
             }
             throw error
         }
+    }
+
+    // MARK: - Clipboard Restore
+
+    /// Restore clipboard from deep-copied data snapshot.
+    private func restoreClipboard(pasteboard: NSPasteboard, savedData: [[(NSPasteboard.PasteboardType, Data)]]) {
+        guard !savedData.isEmpty else { return }
+        pasteboard.clearContents()
+        for itemData in savedData {
+            let newItem = NSPasteboardItem()
+            for (type, data) in itemData {
+                newItem.setData(data, forType: type)
+            }
+            pasteboard.writeObjects([newItem])
+        }
+        Logger.injection.debug("Original clipboard restored")
     }
 
     // MARK: - Paste Simulation
