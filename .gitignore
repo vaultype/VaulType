@@ -75,10 +75,13 @@ compile_commands.json
 # Secrets - NEVER COMMIT
 *.p12
 *.p8
+*.pem
+*.key
 *.cer
 *.mobileprovision
 *.provisionprofile
 authkey*.json
+credentials.*
 secrets/
 .env
 .env.*
