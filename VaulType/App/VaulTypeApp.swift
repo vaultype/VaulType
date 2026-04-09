@@ -128,6 +128,11 @@ private struct MenuBarLabel: View {
 
     var body: some View {
         Image(nsImage: appState.menuBarImage)
+            .onAppear {
+                if !appState.onboardingCompleted {
+                    openWindow(id: "onboarding")
+                }
+            }
             .onReceive(NotificationCenter.default.publisher(for: .showOnboarding)) { _ in
                 openWindow(id: "onboarding")
             }
