@@ -68,7 +68,7 @@ struct AboutSettingsTab: View {
                 }
                 .accessibilityLabel("View source code on GitHub")
 
-                Link(destination: URL(string: "https://vaultype.app/legal/privacy-policy/")!) {
+                Link(destination: URL(string: "https://vaultype.app/security/legal/#4-privacy-policy")!) {
                     HStack {
                         Image(systemName: "hand.raised")
                         Text("Privacy Policy")
