@@ -7,16 +7,16 @@
         <language>en</language>
         <!-- Items will be added by scripts/update-appcast.sh on each release -->
         <item>
-            <title>Version 1.1.4</title>
-            <pubDate>Thu, 09 Apr 2026 19:15:52 +0000</pubDate>
-            <sparkle:version>17</sparkle:version>
-            <sparkle:shortVersionString>1.1.4</sparkle:shortVersionString>
+            <title>Version 1.1.5</title>
+            <pubDate>Thu, 09 Apr 2026 19:30:26 +0000</pubDate>
+            <sparkle:version>18</sparkle:version>
+            <sparkle:shortVersionString>1.1.5</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
             <enclosure
-                url="https://github.com/vaultype/VaulType/releases/download/v1.1.4/VaulType.dmg"
-                length="3624232"
+                url="https://github.com/vaultype/VaulType/releases/download/v1.1.5/VaulType.dmg"
+                length="3625256"
                 type="application/octet-stream"
-                sparkle:edSignature="j1UvGVdpszs9R+C5mVrFUWnhICMDiWUwbSWfxL8yU8zPNIHeumhkTQGN+p9tQBTqDUz31/RefEJVea5XCTDzCQ=="
+                sparkle:edSignature="2ose+uzor1VdIipMwSFBNrC2OCS0Xxmhb8BdyXJnw1FzX/wUBmhKjYa3WpCEub83CSxxyuXV6O5vkLj1ahgyAw=="
             />
         </item>
     </channel>
