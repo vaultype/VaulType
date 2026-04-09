@@ -6,18 +6,18 @@
         <description>VaulType update feed</description>
         <language>en</language>
         <!-- Items will be added by scripts/update-appcast.sh on each release -->
-    </channel>
         <item>
-            <title>Version 1.1.2</title>
-            <pubDate>Wed, 04 Mar 2026 20:48:15 +0000</pubDate>
-            <sparkle:version>1.1.2</sparkle:version>
-            <sparkle:shortVersionString>1.1.2</sparkle:shortVersionString>
+            <title>Version 1.1.3</title>
+            <pubDate>Thu, 09 Apr 2026 18:57:11 +0000</pubDate>
+            <sparkle:version>16</sparkle:version>
+            <sparkle:shortVersionString>1.1.3</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
             <enclosure
-                url="https://github.com/vaultype/VaulType/releases/download/v1.1.2/VaulType-1.1.2.dmg"
-                length="3624045"
+                url="https://github.com/vaultype/VaulType/releases/download/v1.1.3/VaulType-1.1.3.dmg"
+                length="3623936"
                 type="application/octet-stream"
-                sparkle:edSignature="IhD8+z7LTWVUM1Kg/VpCaDIQP4VRvef7PIZUOEotInTxi3+ry92cbBV+17cnFmnaND23l1gtvK6gl6Wo1Q6RCw=="
+                sparkle:edSignature="uQKNHrESyDTtD4dzFlmm2NmAVpv06YNb6FffcfbN9agnmiysJFZhyrk1hOYz5KVuUafLVafGcLFBwuXFylDtDw=="
             />
         </item>
+    </channel>
 </rss>
