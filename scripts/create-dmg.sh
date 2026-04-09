@@ -6,7 +6,7 @@
 # Uses native hdiutil + AppleScript. No external dependencies required.
 # If 'create-dmg' (brew install create-dmg) is installed, uses it instead.
 #
-# Output: build/VaulType-<version>.dmg
+# Output: build/VaulType.dmg
 
 set -euo pipefail
 
@@ -42,7 +42,7 @@ Options:
   --help                Show this help message and exit
 
 Output:
-  build/VaulType-<version>.dmg
+  build/VaulType.dmg
 
 Examples:
   ./scripts/create-dmg.sh 1.0.0
@@ -86,7 +86,7 @@ fi
 # Prepare output directory
 # ---------------------------------------------------------------------------
 mkdir -p "$OUTPUT_DIR"
-OUTPUT_DMG="$OUTPUT_DIR/VaulType-${VERSION}.dmg"
+OUTPUT_DMG="$OUTPUT_DIR/VaulType.dmg"
 
 # Remove stale DMG
 if [[ -f "$OUTPUT_DMG" ]]; then
