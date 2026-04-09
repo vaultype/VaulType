@@ -94,9 +94,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         startPipeline()
 
-        // Show onboarding immediately on first launch
+        // Show onboarding on first launch — delay briefly so SwiftUI's
+        // .onReceive has time to subscribe (notification posted from
+        // applicationDidFinishLaunching fires before the view body is evaluated).
         if !appState.onboardingCompleted {
-            NotificationCenter.default.post(name: .showOnboarding, object: nil)
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                NotificationCenter.default.post(name: .showOnboarding, object: nil)
+            }
         }
     }
 
