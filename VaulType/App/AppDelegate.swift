@@ -10,6 +10,7 @@ import AppKit
 import Sparkle
 #endif
 import SwiftData
+import SwiftUI
 import os
 
 private let startupLog = OSLog(subsystem: Constants.logSubsystem, category: "startup")
@@ -94,24 +95,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         startPipeline()
 
-        // Show onboarding on first launch — retry until SwiftUI's scene
-        // graph is ready and the .onReceive subscriber is active. In release
-        // builds the MenuBarExtra label may not fire onAppear reliably.
+        // Show onboarding on first launch.
+        // openWindow(id:) from MenuBarExtra labels is unreliable in release
+        // builds, so we open the window directly via NSWindow hosting.
         if !appState.onboardingCompleted {
-            var attempts = 0
-            func postOnboarding() {
-                attempts += 1
-                NotificationCenter.default.post(name: .showOnboarding, object: nil)
-                // Check if the onboarding window actually opened; if not, retry
-                let hasOnboardingWindow = NSApp.windows.contains { $0.identifier?.rawValue == "onboarding" || $0.title == "Welcome to VaulType" }
-                if !hasOnboardingWindow && attempts < 10 {
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                        postOnboarding()
-                    }
-                }
-            }
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                postOnboarding()
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                self.showOnboardingWindow()
             }
         }
     }
@@ -436,6 +425,42 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             Logger.performance.info("Deferred setup complete — all models loaded")
         }
     }
+
+    // MARK: - Onboarding Window
+
+    @MainActor
+    private func showOnboardingWindow() {
+        // Try the notification path first (in case SwiftUI is ready)
+        NotificationCenter.default.post(name: .showOnboarding, object: nil)
+
+        // Check if it worked after a beat; if not, open directly via NSWindow
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+            let found = NSApp.windows.contains {
+                $0.title == "Welcome to VaulType" && $0.isVisible
+            }
+            if !found {
+                Logger.ui.info("SwiftUI openWindow failed — opening onboarding via NSWindow hosting")
+                let onboardingView = OnboardingView()
+                    .modelContainer(self.modelContainer!)
+                let hostingController = NSHostingController(rootView: onboardingView)
+                let window = NSWindow(contentViewController: hostingController)
+                window.title = "Welcome to VaulType"
+                window.styleMask = [.titled, .closable, .fullSizeContentView]
+                window.titlebarAppearsTransparent = true
+                window.titleVisibility = .hidden
+                window.isReleasedWhenClosed = false
+                window.setContentSize(NSSize(width: 520, height: 560))
+                window.center()
+                window.level = .floating
+                NSApp.activate(ignoringOtherApps: true)
+                window.makeKeyAndOrderFront(nil)
+                // Prevent deallocation
+                self.onboardingWindow = window
+            }
+        }
+    }
+
+    private var onboardingWindow: NSWindow?
 
     // MARK: - Overlay Observation
 
