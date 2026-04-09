@@ -361,10 +361,11 @@ jobs:
       - name: Update appcast.xml
         env:
           RELEASE_VERSION: ${{ steps.version.outputs.version }}
+          BUILD_NUMBER: ${{ github.run_number }}
           ED_SIGNATURE: ${{ steps.signatures.outputs.ed_signature }}
         run: |
           DMG_PATH="build/${APP_NAME}-${RELEASE_VERSION}.dmg"
-          ./scripts/update-appcast.sh "$RELEASE_VERSION" "$DMG_PATH" "$ED_SIGNATURE"
+          ./scripts/update-appcast.sh "$RELEASE_VERSION" "$BUILD_NUMBER" "$DMG_PATH" "$ED_SIGNATURE"
 
       - name: Prepare appcast for deployment
         run: |

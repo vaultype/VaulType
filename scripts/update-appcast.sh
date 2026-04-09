@@ -1,10 +1,11 @@
 #!/bin/bash
 # update-appcast.sh — Add a new release entry to the Sparkle appcast.
 #
-# Usage: ./scripts/update-appcast.sh <version> <dmg-path> <ed-signature>
+# Usage: ./scripts/update-appcast.sh <version> <build-number> <dmg-path> <ed-signature>
 #
 # Arguments:
 #   version       Release version (e.g. 1.0.0)
+#   build-number  CI build number (e.g. 22) — used as sparkle:version
 #   dmg-path      Path to the .dmg file
 #   ed-signature  EdDSA signature from Sparkle's sign_update tool
 #
@@ -22,12 +23,13 @@ GITHUB_REPO="vaultype/VaulType"
 # ---------------------------------------------------------------------------
 usage() {
     cat <<EOF
-Usage: $(basename "$0") <version> <dmg-path> <ed-signature>
+Usage: $(basename "$0") <version> <build-number> <dmg-path> <ed-signature>
 
 Add a new release entry to the Sparkle appcast.
 
 Arguments:
   version       Release version string (e.g. 1.0.0)
+  build-number  CI build number (e.g. 22) — maps to sparkle:version (CFBundleVersion)
   dmg-path      Path to the signed .dmg file
   ed-signature  EdDSA signature from: sparkle/bin/sign_update <dmg>
 
@@ -39,7 +41,7 @@ Output:
   Updates appcast.xml with the new <item> entry.
 
 Examples:
-  ./scripts/update-appcast.sh 1.0.0 build/VaulType-1.0.0.dmg "BASE64_SIGNATURE"
+  ./scripts/update-appcast.sh 1.0.0 22 build/VaulType-1.0.0.dmg "BASE64_SIGNATURE"
 EOF
 }
 
@@ -48,16 +50,17 @@ if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
     exit 0
 fi
 
-if [[ $# -lt 3 ]]; then
-    echo "error: requires 3 arguments: version, dmg-path, ed-signature"
+if [[ $# -lt 4 ]]; then
+    echo "error: requires 4 arguments: version, build-number, dmg-path, ed-signature"
     echo ""
     usage
     exit 1
 fi
 
 VERSION="$1"
-DMG_PATH="$2"
-ED_SIGNATURE_RAW="$3"
+BUILD_NUMBER="$2"
+DMG_PATH="$3"
+ED_SIGNATURE_RAW="$4"
 
 # sign_update may output full attribute string like:
 #   sparkle:edSignature="BASE64..." length="12345"
@@ -90,6 +93,7 @@ MIN_SYSTEM_VERSION="14.0"
 echo "=== VaulType: Appcast Update ==="
 echo ""
 echo "Version    : $VERSION"
+echo "Build      : $BUILD_NUMBER"
 echo "DMG        : $DMG_PATH"
 echo "Size       : $DMG_SIZE bytes"
 echo "Download   : $DOWNLOAD_URL"
@@ -98,11 +102,13 @@ echo ""
 # ---------------------------------------------------------------------------
 # Build the new <item> XML entry
 # ---------------------------------------------------------------------------
+# sparkle:version uses the CI build number (CFBundleVersion) for numeric comparison.
+# sparkle:shortVersionString uses the marketing version shown to users.
 NEW_ITEM=$(cat <<ITEM_EOF
         <item>
             <title>Version ${VERSION}</title>
             <pubDate>${PUB_DATE}</pubDate>
-            <sparkle:version>${VERSION}</sparkle:version>
+            <sparkle:version>${BUILD_NUMBER}</sparkle:version>
             <sparkle:shortVersionString>${VERSION}</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>${MIN_SYSTEM_VERSION}</sparkle:minimumSystemVersion>
             <enclosure
@@ -118,20 +124,24 @@ ITEM_EOF
 # ---------------------------------------------------------------------------
 # Insert the new item before the closing </channel> tag
 # ---------------------------------------------------------------------------
-# Use a temp file for safe in-place editing
+# NOTE: Do NOT use sed "r" — on macOS it inserts AFTER the match, placing
+# <item> outside </channel> and producing invalid XML that Sparkle silently
+# ignores. Use a while-read loop to insert BEFORE </channel>.
 TEMP_FILE=$(mktemp)
 ITEM_FILE=$(mktemp)
 echo "$NEW_ITEM" > "$ITEM_FILE"
 
-# Insert new item before </channel> using sed with a file read
-sed "/<\/channel>/{
-r $ITEM_FILE
-}" "$APPCAST" > "$TEMP_FILE"
+while IFS= read -r line; do
+    if [[ "$line" == *"</channel>"* ]]; then
+        cat "$ITEM_FILE"
+    fi
+    printf '%s\n' "$line"
+done < "$APPCAST" > "$TEMP_FILE"
 
 mv "$TEMP_FILE" "$APPCAST"
 rm -f "$ITEM_FILE"
 
-echo "[done] appcast.xml updated with v${VERSION}"
+echo "[done] appcast.xml updated with v${VERSION} (build ${BUILD_NUMBER})"
 echo ""
 echo "Next steps:"
 echo "  1. Commit appcast.xml"
