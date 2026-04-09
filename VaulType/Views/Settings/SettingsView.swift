@@ -15,19 +15,11 @@ struct SettingsView: View {
 
     var body: some View {
         TabView(selection: $selectedTab) {
-            #if !APPSTORE
-            GeneralSettingsTab(updater: updater)
-                .tabItem {
-                    Label("General", systemImage: "gear.circle")
-                }
-                .tag(0)
-            #else
             GeneralSettingsTab()
                 .tabItem {
                     Label("General", systemImage: "gear.circle")
                 }
                 .tag(0)
-            #endif
 
             AudioSettingsTab()
                 .tabItem {
@@ -84,8 +76,22 @@ struct SettingsView: View {
                 }
                 .tag(9)
             #endif
+
+            #if !APPSTORE
+            AboutSettingsTab(updater: updater)
+                .tabItem {
+                    Label("About", systemImage: "info.circle")
+                }
+                .tag(10)
+            #else
+            AboutSettingsTab()
+                .tabItem {
+                    Label("About", systemImage: "info.circle")
+                }
+                .tag(10)
+            #endif
         }
-        .frame(minWidth: 500, minHeight: 700)
+        .frame(minWidth: 600, minHeight: 500)
         .onAppear {
             selectedTab = 0
             Logger.ui.info("Settings window opened")
