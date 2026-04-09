@@ -94,12 +94,24 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         startPipeline()
 
-        // Show onboarding on first launch — delay briefly so SwiftUI's
-        // .onReceive has time to subscribe (notification posted from
-        // applicationDidFinishLaunching fires before the view body is evaluated).
+        // Show onboarding on first launch — retry until SwiftUI's scene
+        // graph is ready and the .onReceive subscriber is active. In release
+        // builds the MenuBarExtra label may not fire onAppear reliably.
         if !appState.onboardingCompleted {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            var attempts = 0
+            func postOnboarding() {
+                attempts += 1
                 NotificationCenter.default.post(name: .showOnboarding, object: nil)
+                // Check if the onboarding window actually opened; if not, retry
+                let hasOnboardingWindow = NSApp.windows.contains { $0.identifier?.rawValue == "onboarding" || $0.title == "Welcome to VaulType" }
+                if !hasOnboardingWindow && attempts < 10 {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                        postOnboarding()
+                    }
+                }
+            }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                postOnboarding()
             }
         }
     }
