@@ -219,8 +219,9 @@ enum CommandIntent: String, Codable, CaseIterable, Identifiable, Sendable {
 
     /// Whether this intent can execute in the current distribution.
     /// App Store builds exclude AXUIElement window management, AppleScript/
-    /// process-spawning system control, and all synthetic input events
-    /// (Guideline 2.4.5).
+    /// process-spawning system control, all synthetic input events
+    /// (Guideline 2.4.5), and commands whose underlying APIs silently fail
+    /// in the sandbox (quitApp/hideApp).
     var isAvailableInThisBuild: Bool {
         #if APPSTORE
         switch self {
@@ -229,7 +230,7 @@ enum CommandIntent: String, Codable, CaseIterable, Identifiable, Sendable {
              .brightnessUp, .brightnessDown, .doNotDisturbToggle, .darkModeToggle, .lockScreen,
              .volumeUp, .volumeDown, .volumeMute, .volumeSet,
              .fullScreenToggle, .takeScreenshot, .injectShortcut,
-             .closeApp, .showAllWindows:
+             .closeApp, .showAllWindows, .quitApp, .hideApp:
             return false
         default:
             return true
@@ -237,6 +238,11 @@ enum CommandIntent: String, Codable, CaseIterable, Identifiable, Sendable {
         #else
         return true
         #endif
+    }
+
+    /// Intents selectable in UI for this distribution.
+    static var availableCases: [CommandIntent] {
+        allCases.filter(\.isAvailableInThisBuild)
     }
 }
 

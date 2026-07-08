@@ -88,12 +88,15 @@ final class CommandExecutor {
             return try await handleOpenApp(command.entities["appName"] ?? "")
         case .switchToApp:
             return try handleSwitchToApp(command.entities["appName"] ?? "")
+
+        #if !APPSTORE
+        // terminate()/hide() on other apps silently fail in the sandbox —
+        // direct distribution only
         case .quitApp:
             return try handleQuitApp(command.entities["appName"] ?? "")
         case .hideApp:
             return try handleHideApp(command.entities["appName"] ?? "")
 
-        #if !APPSTORE
         // Synthetic-keystroke commands (Cmd+W / Ctrl+Up) — direct distribution only
         case .closeApp:
             return try await handleCloseApp(command.entities["appName"] ?? "")
@@ -233,6 +236,7 @@ final class CommandExecutor {
     }
     #endif
 
+    #if !APPSTORE
     private func handleQuitApp(_ name: String) throws -> String {
         guard !name.isEmpty else { throw CommandError.missingEntity("appName") }
         guard let app = findRunningApp(named: name) else {
@@ -250,6 +254,7 @@ final class CommandExecutor {
         app.hide()
         return "Hid \(app.localizedName ?? name)"
     }
+    #endif
 
     #if !APPSTORE
     private func handleShowAllWindows() throws -> String {

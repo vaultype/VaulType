@@ -215,6 +215,9 @@ struct AudioSettingsTab: View {
                 }
                 .help("CPU threads for whisper inference. Auto uses all available cores for fastest transcription.")
 
+                #if !APPSTORE
+                // Battery power-source detection uses IOKit, which is excluded
+                // from the sandboxed App Store build — the toggle would be a no-op there.
                 Toggle("Battery-Aware Mode", isOn: Binding(
                     get: { settings?.batteryAwareModeEnabled ?? true },
                     set: { newValue in
@@ -223,6 +226,7 @@ struct AudioSettingsTab: View {
                     }
                 ))
                 .help("Automatically reduce model quality and thread count when running on battery power")
+                #endif
             }
         }
         .formStyle(.grouped)

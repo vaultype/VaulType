@@ -265,7 +265,10 @@ private struct ActionSequenceBuilder: View {
     }
 
     private func addStep() {
-        let newStep = CommandActionStep(intent: .volumeUp, parameters: [:])
+        // Default to an intent that exists in this distribution
+        // (volumeUp is unavailable in the App Store build).
+        let defaultIntent = CommandIntent.availableCases.first ?? .openApp
+        let newStep = CommandActionStep(intent: defaultIntent, parameters: [:])
         command.actions.append(newStep)
         onSave()
         Logger.ui.info("Added action step to command: \(command.name)")
@@ -331,7 +334,7 @@ private struct ActionStepRow: View {
             Picker("Action", selection: $selectedIntent) {
                 ForEach(CommandCategory.allCases) { category in
                     Section(category.rawValue) {
-                        ForEach(CommandIntent.allCases.filter { $0.category == category }) { intent in
+                        ForEach(CommandIntent.availableCases.filter { $0.category == category }) { intent in
                             HStack {
                                 Image(systemName: intent.iconName)
                                 Text(intent.displayName)

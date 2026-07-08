@@ -104,6 +104,13 @@ final class PluginManager {
     ///   (i.e., `AnyObject.Type`) and Swift protocols cannot mandate an initializer on
     ///   existential metatypes without an `NSObject` base.
     func loadPlugin(at url: URL) throws {
+        #if APPSTORE
+        // App Store builds must not load external code (Guideline 2.5.2).
+        // Discovery and the Plugins UI are already excluded; this keeps the
+        // dynamic-loading path itself out of the MAS binary.
+        logger.warning("Plugin loading is not available in the App Store build: \(url.lastPathComponent)")
+        throw PluginError.loadFailed(path: url.path, reason: "Plugins are not available in this version")
+        #else
         guard let bundle = Bundle(url: url) else {
             throw PluginError.loadFailed(path: url.path, reason: "Failed to create bundle")
         }
@@ -151,6 +158,7 @@ final class PluginManager {
 
         loadedPlugins.append(plugin)
         logger.info("Loaded plugin: \(plugin.displayName) v\(plugin.version) (\(plugin.identifier))")
+        #endif
     }
 
     // MARK: - Activation

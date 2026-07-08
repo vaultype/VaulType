@@ -73,21 +73,23 @@ final class CommandExecutorTests: XCTestCase {
     // MARK: - App Store build: synthetic-input commands are unavailable
 
     func testUnavailableCommandReturnsGracefulFailure() async throws {
-        // Volume commands post synthetic input events, which App Store builds
-        // exclude (Guideline 2.4.5). They must fail gracefully, not crash.
-        guard let command = parser.parse("volume up") else {
-            XCTFail("Expected 'volume up' to parse successfully")
-            return
+        // Volume commands post synthetic input events, and quitApp uses
+        // NSRunningApplication.terminate() which silently fails in the
+        // sandbox. App Store builds exclude both — they must fail gracefully.
+        for phrase in ["volume up", "quit Safari"] {
+            guard let command = parser.parse(phrase) else {
+                XCTFail("Expected '\(phrase)' to parse successfully")
+                return
+            }
+
+            let result = await executor.execute(command)
+
+            XCTAssertFalse(result.success, "Unavailable command '\(phrase)' should return success == false")
+            XCTAssertTrue(
+                result.message.contains("not available"),
+                "Failure message for '\(phrase)' should mention the command is unavailable, got: \(result.message)"
+            )
         }
-
-        let result = await executor.execute(command)
-
-        XCTAssertFalse(result.success, "Unavailable command should return success == false")
-        XCTAssertEqual(result.intent, .volumeUp)
-        XCTAssertTrue(
-            result.message.contains("not available"),
-            "Failure message should mention the command is unavailable, got: \(result.message)"
-        )
     }
 
     func testExecuteChainStopsAtUnavailableCommand() async throws {

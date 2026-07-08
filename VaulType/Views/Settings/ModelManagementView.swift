@@ -257,7 +257,7 @@ struct ModelManagementView: View {
                     Text("No \(selectedModelType.displayName) models found.")
                         .foregroundStyle(.secondary)
                         .font(.callout)
-                    Text("Use the Import button below to add a model, or wait for models to be seeded on first launch.")
+                    Text("Models are added automatically on first launch. If the list stays empty, check your internet connection and reopen this tab.")
                         .foregroundStyle(.secondary)
                         .font(.caption)
                 }
