@@ -11,6 +11,7 @@ import os.log
 struct MenuBarView: View {
     var appState: AppState
     @Environment(\.openWindow) private var openWindow
+    @Environment(\.openSettings) private var openSettings
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -123,6 +124,7 @@ struct MenuBarView: View {
             VStack(spacing: 8) {
                 Button {
                     openWindow(id: "history")
+                    Self.raiseWindow { $0.title == "Dictation History" }
                 } label: {
                     HStack {
                         Image(systemName: "clock.arrow.circlepath")
@@ -136,7 +138,12 @@ struct MenuBarView: View {
                 .accessibilityLabel("History")
                 .accessibilityHint("Opens the dictation history window")
 
-                SettingsLink {
+                Button {
+                    openSettings()
+                    Self.raiseWindow { window in
+                        window.identifier?.rawValue.contains("Settings") == true
+                    }
+                } label: {
                     HStack {
                         Image(systemName: "gearshape")
                         Text("Settings")
@@ -144,7 +151,8 @@ struct MenuBarView: View {
                     }
                     .contentShape(Rectangle())
                 }
-                .buttonStyle(SettingsButtonStyle())
+                .buttonStyle(.plain)
+                .keyboardShortcut(",", modifiers: .command)
                 .foregroundStyle(.primary)
                 .accessibilityLabel("Settings")
                 .accessibilityHint("Opens the VaulType settings window")
@@ -168,17 +176,27 @@ struct MenuBarView: View {
         }
         .padding(12)
         .frame(width: 280)
-        .onDisappear {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
-                let hasSettingsWindow = NSApp.windows.contains { $0.isVisible && $0.level == .normal }
-                if hasSettingsWindow {
-                    NSApp.activate(ignoringOtherApps: true)
+    }
+
+    // MARK: - Helper Methods
+
+    /// Bring a just-opened window above other apps' windows.
+    ///
+    /// Menu bar apps run with the `.accessory` activation policy, so opening a
+    /// window does not activate the app and the window can appear behind the
+    /// frontmost app. SwiftUI also creates the window asynchronously, so retry
+    /// briefly until it exists.
+    private static func raiseWindow(matching predicate: @escaping (NSWindow) -> Bool) {
+        for delay: TimeInterval in [0.05, 0.2, 0.5] {
+            DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
+                NSApp.activate(ignoringOtherApps: true)
+                if let window = NSApp.windows.first(where: predicate) {
+                    window.makeKeyAndOrderFront(nil)
+                    window.orderFrontRegardless()
                 }
             }
         }
     }
-
-    // MARK: - Helper Methods
 
     private func truncatePreview(_ text: String) -> String {
         let maxLength = 120
@@ -191,20 +209,6 @@ struct MenuBarView: View {
     private func quitApp() {
         Logger.general.info("User requested quit from menu bar")
         NSApp.terminate(nil)
-    }
-}
-
-private struct SettingsButtonStyle: ButtonStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .onChange(of: configuration.isPressed) { _, pressed in
-                if pressed {
-                    // Activate after SettingsLink opens/shows the settings window
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                        NSApp.activate(ignoringOtherApps: true)
-                    }
-                }
-            }
     }
 }
 
