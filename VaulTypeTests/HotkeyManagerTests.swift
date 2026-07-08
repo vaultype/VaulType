@@ -146,6 +146,51 @@ final class HotkeyManagerTests: XCTestCase {
         }
     }
 
+    // MARK: - Reload / Re-Registration
+
+    func testLoadFromSettingsReplacesBinding() throws {
+        let manager = HotkeyManager()
+        try manager.loadFromSettings(hotkey: "fn")
+        XCTAssertEqual(manager.bindings.count, 1)
+        XCTAssertEqual(manager.bindings.first?.keyCode, CGKeyCode(kVK_Function))
+
+        try manager.loadFromSettings(hotkey: "cmd+shift+space")
+        XCTAssertEqual(manager.bindings.count, 1, "Reload must replace, not append")
+        XCTAssertEqual(manager.bindings.first?.keyCode, CGKeyCode(kVK_Space))
+        XCTAssertEqual(manager.bindings.first?.modifiers, [.maskCommand, .maskShift])
+    }
+
+    func testLoadFromSettingsWhileRunningReRegisters() throws {
+        // Regression test: changing the hotkey at runtime must re-register with
+        // the OS. The App Store build classifies bindings (Carbon hot key vs fn
+        // monitor) at start(), so a reload that only swaps the bindings array
+        // leaves the new hotkey dead until relaunch.
+        let manager = HotkeyManager()
+        try manager.loadFromSettings(hotkey: "fn")
+        try manager.start()
+        defer { manager.stop() }
+
+        // Reload while running: must not throw (stop/start cycle) and must
+        // leave the manager started so a subsequent start() throws.
+        try manager.loadFromSettings(hotkey: "cmd+shift+space")
+
+        XCTAssertEqual(manager.bindings.first?.keyCode, CGKeyCode(kVK_Space))
+        XCTAssertThrowsError(try manager.start(), "Manager should still be running after reload") { error in
+            XCTAssertEqual(error as? HotkeyError, HotkeyError.alreadyRunning)
+        }
+    }
+
+    func testLoadFromSettingsBeforeStartDoesNotStart() throws {
+        // At launch, DictationController.start calls loadFromSettings before
+        // start(). The reload path must not implicitly start the manager.
+        let manager = HotkeyManager()
+        try manager.loadFromSettings(hotkey: "cmd+shift+space")
+
+        // start() must succeed — loadFromSettings must not have started it.
+        XCTAssertNoThrow(try manager.start())
+        manager.stop()
+    }
+
     func testParseInvalidInput() {
         // Test parsing invalid inputs
         XCTAssertNil(HotkeyBinding.parse(""))

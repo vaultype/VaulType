@@ -208,10 +208,16 @@ final class HotkeyManager: @unchecked Sendable {
     /// Tracks whether the fn key is currently held (for push-to-talk).
     private var fnKeyDown = false
 
+    /// Synchronous mirror of the started state. `isRunning` is published
+    /// asynchronously on the main queue, so lifecycle decisions (e.g. whether
+    /// loadFromSettings must re-register) use this flag instead.
+    @ObservationIgnored private var isStarted = false
+
     // MARK: - Lifecycle
 
     func start() throws {
-        guard !isRunning else { throw HotkeyError.alreadyRunning }
+        guard !isStarted else { throw HotkeyError.alreadyRunning }
+        isStarted = true
 
         #if APPSTORE
         // App Store: Carbon RegisterEventHotKey (sandbox-safe) for regular keys,
@@ -280,6 +286,7 @@ final class HotkeyManager: @unchecked Sendable {
         }
 
         fnKeyDown = false
+        isStarted = false
         DispatchQueue.main.async { [weak self] in
             self?.isRunning = false
         }
@@ -324,6 +331,15 @@ final class HotkeyManager: @unchecked Sendable {
         _bindings.removeAll()
         bindingsLock.unlock()
         try register(binding)
+
+        // Re-register with the OS if already running. The App Store build
+        // classifies bindings (Carbon hot key vs fn monitor) at start(), so
+        // swapping the bindings array alone leaves the old registration
+        // active and the new binding dead.
+        if isStarted {
+            stop()
+            try start()
+        }
     }
 
     // MARK: - Event Handling
