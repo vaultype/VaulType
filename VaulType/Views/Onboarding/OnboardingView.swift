@@ -98,13 +98,22 @@ struct OnboardingView: View {
         .frame(width: 520, height: 480)
         .onAppear {
             refreshMicrophoneStatus()
+            #if !APPSTORE
             permissionsManager.refreshAccessibilityStatus()
+            #endif
         }
         .onChange(of: currentStep) { _, newStep in
             stopPolling()
+            #if APPSTORE
+            // Step 2 is an info panel with no permission to poll for.
+            if newStep == 1 {
+                startPolling()
+            }
+            #else
             if newStep == 1 || newStep == 2 {
                 startPolling()
             }
+            #endif
         }
         .onDisappear {
             stopPolling()
@@ -174,6 +183,23 @@ struct OnboardingView: View {
         VStack(spacing: 20) {
             Spacer()
 
+            #if APPSTORE
+            // No permission is requested here: App Store builds deliver text
+            // via the clipboard only (Guideline 2.4.5).
+            Image(systemName: "doc.on.clipboard.fill")
+                .font(.system(size: 64))
+                .foregroundStyle(Color.accentColor)
+
+            Text("How Text Delivery Works")
+                .font(.title)
+                .fontWeight(.bold)
+
+            Text("When you finish dictating, VaulType copies the transcribed text to your clipboard and shows a reminder. Press ⌘V to paste it anywhere. No extra permissions needed.")
+                .font(.body)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+                .frame(maxWidth: 380)
+            #else
             if permissionsManager.accessibilityEnabled {
                 Image(systemName: "checkmark.circle.fill")
                     .font(.system(size: 64))
@@ -184,37 +210,6 @@ struct OnboardingView: View {
                     .foregroundStyle(Color.accentColor)
             }
 
-            #if APPSTORE
-            Text("Text Input Permission")
-                .font(.title)
-                .fontWeight(.bold)
-
-            Text("VaulType needs permission to simulate keystrokes so it can type transcribed text into any app.")
-                .font(.body)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-                .frame(maxWidth: 380)
-
-            if permissionsManager.accessibilityEnabled {
-                Label("Text input permission granted", systemImage: "checkmark.circle.fill")
-                    .foregroundStyle(Color.green)
-                    .font(.callout)
-                    .accessibilityLabel("Text input permission granted")
-            } else {
-                Button("Grant Text Input Permission") {
-                    permissionsManager.requestPostEventAccess()
-                }
-                .buttonStyle(.bordered)
-                .accessibilityLabel("Grant text input permission")
-                .accessibilityHint("Shows a system dialog to allow VaulType to type text into applications")
-
-                Text("Without this permission, text will be copied to clipboard instead of typed directly. You can grant it later in System Settings.")
-                    .font(.caption)
-                    .foregroundStyle(.orange)
-                    .multilineTextAlignment(.center)
-                    .frame(maxWidth: 340)
-            }
-            #else
             Text("Accessibility Permission")
                 .font(.title)
                 .fontWeight(.bold)
@@ -370,11 +365,19 @@ struct OnboardingView: View {
     }
 
     private var completionStep: some View {
+        #if APPSTORE
+        OnboardingStepView(
+            iconName: "checkmark.circle.fill",
+            title: "You're All Set!",
+            description: "Press and hold the fn key to start dictating. Release to stop — your text is copied automatically, then press ⌘V to paste. You can customize everything in Settings."
+        )
+        #else
         OnboardingStepView(
             iconName: "checkmark.circle.fill",
             title: "You're All Set!",
             description: "Press and hold the fn key to start dictating. Release to stop and inject text at your cursor. You can customize everything in Settings."
         )
+        #endif
     }
 
     // MARK: - Permission Polling
@@ -382,7 +385,9 @@ struct OnboardingView: View {
     private func startPolling() {
         pollingTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { _ in
             refreshMicrophoneStatus()
+            #if !APPSTORE
             permissionsManager.refreshAccessibilityStatus()
+            #endif
         }
     }
 

@@ -30,6 +30,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var llmService: LLMService?
     private var registryService: ModelRegistryService?
     private var overlayWindow: OverlayWindow?
+    private var pasteHUDWindow: PasteHUDWindow?
     private var powerManagementService: PowerManagementService?
 
     // Track currently loaded models and hotkey to detect selection changes
@@ -390,6 +391,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         self.overlayWindow = overlay
         startOverlayObservation()
 
+        // Create paste HUD panel ("Copied — press ⌘V to paste")
+        let pasteHUD = PasteHUDWindow()
+        pasteHUD.setContent(appState: appState)
+        self.pasteHUDWindow = pasteHUD
+        startPasteHUDObservation()
+
         os_signpost(.end, log: startupLog, name: "pipelineCore", signpostID: startupSignpostID)
         Logger.performance.info("Pipeline core ready — menu bar active")
 
@@ -478,6 +485,25 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                     self.overlayWindow?.showOverlay(position: .bottomCenter)
                 } else {
                     self.overlayWindow?.hideOverlay()
+                }
+            }
+        }
+    }
+
+    private func startPasteHUDObservation() {
+        Task { @MainActor [weak self] in
+            while let self = self {
+                await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+                    withObservationTracking {
+                        _ = self.appState.showPasteHUD
+                    } onChange: {
+                        continuation.resume()
+                    }
+                }
+                if self.appState.showPasteHUD {
+                    self.pasteHUDWindow?.showHUD()
+                } else {
+                    self.pasteHUDWindow?.hideHUD()
                 }
             }
         }

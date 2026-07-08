@@ -214,14 +214,24 @@ jobs:
 
           echo ""
           echo "=== 4. Checking for restricted symbols ==="
+          # Guideline 2.4.5: the App Store binary must contain no synthetic
+          # input / post-event / accessibility symbols at all.
           RESTRICTED=$(nm -u "$APP_PATH/Contents/MacOS/${APP_NAME}" 2>/dev/null | \
-            grep -iE "IOPSCopy|AXUIElement|IOServiceMatching|IORegistryEntry" || true)
+            grep -iE "IOPSCopy|AXUIElement|IOServiceMatching|IORegistryEntry|CGEventPost|CGEventCreateKeyboardEvent|CGEventKeyboardSetUnicodeString|CGRequestPostEventAccess|CGPreflightPostEventAccess|AXIsProcessTrusted|CGEventSourceCreate|IOHIDRequestAccess|IOHIDCheckAccess" || true)
           if [ -n "$RESTRICTED" ]; then
             echo "$RESTRICTED"
             echo "::error::Restricted symbols found in App Store binary!"
             exit 1
           fi
           echo "OK: No restricted symbols"
+
+          echo ""
+          echo "=== 5. Verify no accessibility usage description in Info.plist ==="
+          if /usr/libexec/PlistBuddy -c "Print :NSAccessibilityUsageDescription" "$APP_PATH/Contents/Info.plist" 2>/dev/null; then
+            echo "::error::NSAccessibilityUsageDescription present in App Store Info.plist!"
+            exit 1
+          fi
+          echo "OK: No NSAccessibilityUsageDescription"
 
       # ------------------------------------------------------------------
       # 5. Export & Upload to App Store Connect

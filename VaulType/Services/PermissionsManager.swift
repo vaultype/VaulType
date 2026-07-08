@@ -8,9 +8,10 @@ final class PermissionsManager {
     // MARK: - State
 
     /// Whether text injection permission has been granted.
-    /// App Store builds use PostEvent TCC; direct distribution uses full Accessibility.
+    /// App Store builds are clipboard-only and never use post-event APIs
+    /// (Guideline 2.4.5), so this is always false there.
     #if APPSTORE
-    private(set) var accessibilityEnabled: Bool = CGPreflightPostEventAccess()
+    private(set) var accessibilityEnabled: Bool = false
     #else
     private(set) var accessibilityEnabled: Bool = AXIsProcessTrusted()
     #endif
@@ -19,19 +20,10 @@ final class PermissionsManager {
 
     /// Check the current permission state.
     func refreshAccessibilityStatus() {
-        #if APPSTORE
-        accessibilityEnabled = CGPreflightPostEventAccess()
-        #else
+        #if !APPSTORE
         accessibilityEnabled = AXIsProcessTrusted()
         #endif
     }
-
-    #if APPSTORE
-    /// Request PostEvent permission (shows system TCC dialog).
-    func requestPostEventAccess() {
-        CGRequestPostEventAccess()
-    }
-    #endif
 
     // MARK: - Microphone
 
@@ -42,6 +34,7 @@ final class PermissionsManager {
         }
     }
 
+    #if !APPSTORE
     // MARK: - Accessibility Settings
 
     /// Open System Settings to the Accessibility pane.
@@ -50,4 +43,5 @@ final class PermissionsManager {
             NSWorkspace.shared.open(url)
         }
     }
+    #endif
 }

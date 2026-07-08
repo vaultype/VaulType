@@ -8,8 +8,6 @@
 	<string>VaulType needs microphone access to capture speech for transcription. All audio is processed locally on your device.</string>
 	<key>NSHumanReadableCopyright</key>
 	<string>Copyright © 2026 VaulType. All rights reserved.</string>
-	<key>NSAccessibilityUsageDescription</key>
-	<string>VaulType needs permission to type transcribed text into other applications at your cursor position.</string>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
 </dict>

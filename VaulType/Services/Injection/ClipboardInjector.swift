@@ -12,6 +12,21 @@ final class ClipboardInjector: @unchecked Sendable {
     /// - Parameter text: The text to inject.
     /// - Throws: TextInjectionError if clipboard or paste operation fails.
     func inject(_ text: String) async throws {
+        #if APPSTORE
+        // App Store builds never post synthetic events (Guideline 2.4.5).
+        // Plain copy — the user pastes with Cmd+V; no snapshot/restore because
+        // restoring at an unknown time would overwrite the dictated text.
+        Logger.injection.info("Clipboard injection started for \(text.count) characters")
+
+        let pasteboard = NSPasteboard.general
+        pasteboard.clearContents()
+        guard pasteboard.setString(text, forType: .string) else {
+            Logger.injection.error("Failed to write text to clipboard")
+            throw TextInjectionError.clipboardOperationFailed
+        }
+
+        Logger.injection.info("Clipboard injection completed (text on clipboard — Cmd+V to paste)")
+        #else
         Logger.injection.info("Clipboard injection started for \(text.count) characters")
 
         // Step 1: Save current clipboard state by deep-copying data.
@@ -40,12 +55,8 @@ final class ClipboardInjector: @unchecked Sendable {
 
             Logger.injection.debug("Text written to clipboard")
 
-            // Step 3: Simulate Cmd+V paste (requires text injection permission)
-            #if APPSTORE
-            let canSimulatePaste = CGPreflightPostEventAccess()
-            #else
+            // Step 3: Simulate Cmd+V paste (requires accessibility permission)
             let canSimulatePaste = AXIsProcessTrusted()
-            #endif
             if canSimulatePaste {
                 try await simulatePaste()
 
@@ -72,8 +83,10 @@ final class ClipboardInjector: @unchecked Sendable {
             }
             throw error
         }
+        #endif
     }
 
+    #if !APPSTORE
     // MARK: - Clipboard Restore
 
     /// Restore clipboard from deep-copied data snapshot.
@@ -127,4 +140,5 @@ final class ClipboardInjector: @unchecked Sendable {
 
         Logger.injection.debug("Cmd+V paste simulated")
     }
+    #endif
 }

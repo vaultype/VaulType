@@ -1,3 +1,4 @@
+#if !APPSTORE
 import CoreGraphics
 import Foundation
 import os
@@ -61,3 +62,4 @@ final class CGEventInjector: @unchecked Sendable {
         keyUpEvent.post(tap: .cghidEventTap)
     }
 }
+#endif

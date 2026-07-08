@@ -216,6 +216,28 @@ enum CommandIntent: String, Codable, CaseIterable, Identifiable, Sendable {
             .workflow
         }
     }
+
+    /// Whether this intent can execute in the current distribution.
+    /// App Store builds exclude AXUIElement window management, AppleScript/
+    /// process-spawning system control, and all synthetic input events
+    /// (Guideline 2.4.5).
+    var isAvailableInThisBuild: Bool {
+        #if APPSTORE
+        switch self {
+        case .moveWindowLeft, .moveWindowRight, .maximizeWindow, .minimizeWindow,
+             .centerWindow, .moveToNextScreen,
+             .brightnessUp, .brightnessDown, .doNotDisturbToggle, .darkModeToggle, .lockScreen,
+             .volumeUp, .volumeDown, .volumeMute, .volumeSet,
+             .fullScreenToggle, .takeScreenshot, .injectShortcut,
+             .closeApp, .showAllWindows:
+            return false
+        default:
+            return true
+        }
+        #else
+        return true
+        #endif
+    }
 }
 
 // MARK: - Command Category
@@ -264,4 +286,23 @@ enum InjectionMethod: String, Codable, CaseIterable, Identifiable {
         }
     }
 
+    /// Cases selectable in UI for this distribution. All cases stay compiled
+    /// in both builds so persisted values decode across distributions;
+    /// App Store builds are clipboard-only (Guideline 2.4.5).
+    static var availableCases: [InjectionMethod] {
+        #if APPSTORE
+        [.clipboard]
+        #else
+        allCases
+        #endif
+    }
+
+    /// Default method for this distribution.
+    static var platformDefault: InjectionMethod {
+        #if APPSTORE
+        .clipboard
+        #else
+        .cgEvent
+        #endif
+    }
 }

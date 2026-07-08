@@ -123,9 +123,12 @@ private struct AppProfileDetailView: View {
                 }
             }
 
+            #if !APPSTORE
+            // App Store builds are clipboard-only, so per-app injection method
+            // and CGEvent shortcut aliases are direct-distribution features.
             Section("Injection") {
                 Picker("Method", selection: $profile.injectionMethod) {
-                    ForEach(InjectionMethod.allCases, id: \.self) { method in
+                    ForEach(InjectionMethod.availableCases, id: \.self) { method in
                         Text(method.rawValue.capitalized).tag(method)
                     }
                 }
@@ -134,6 +137,7 @@ private struct AppProfileDetailView: View {
             Section("Shortcut Aliases") {
                 ShortcutAliasesView(profile: profile)
             }
+            #endif
 
             Section {
                 Button("Delete Profile", role: .destructive) {

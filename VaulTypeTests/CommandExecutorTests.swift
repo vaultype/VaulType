@@ -69,6 +69,42 @@ final class CommandExecutorTests: XCTestCase {
         )
     }
 
+    #if APPSTORE
+    // MARK: - App Store build: synthetic-input commands are unavailable
+
+    func testUnavailableCommandReturnsGracefulFailure() async throws {
+        // Volume commands post synthetic input events, which App Store builds
+        // exclude (Guideline 2.4.5). They must fail gracefully, not crash.
+        guard let command = parser.parse("volume up") else {
+            XCTFail("Expected 'volume up' to parse successfully")
+            return
+        }
+
+        let result = await executor.execute(command)
+
+        XCTAssertFalse(result.success, "Unavailable command should return success == false")
+        XCTAssertEqual(result.intent, .volumeUp)
+        XCTAssertTrue(
+            result.message.contains("not available"),
+            "Failure message should mention the command is unavailable, got: \(result.message)"
+        )
+    }
+
+    func testExecuteChainStopsAtUnavailableCommand() async throws {
+        // A chain starting with an unavailable command must stop at index 0.
+        guard let volumeUpCmd = parser.parse("volume up"),
+              let muteCmd = parser.parse("mute") else {
+            XCTFail("Expected both commands to parse successfully")
+            return
+        }
+
+        let results = await executor.executeChain([volumeUpCmd, muteCmd])
+
+        XCTAssertEqual(results.count, 1, "Chain should stop at the first (unavailable) command")
+        XCTAssertFalse(results[0].success)
+        XCTAssertEqual(results[0].intent, .volumeUp)
+    }
+    #else
     // MARK: - testExecuteChainStopsOnFailure
 
     func testExecuteChainStopsOnFailure() async throws {
@@ -132,4 +168,5 @@ final class CommandExecutorTests: XCTestCase {
             XCTAssertFalse(result.message.isEmpty, "Each result should carry a non-empty message")
         }
     }
+    #endif
 }

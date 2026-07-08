@@ -68,6 +68,13 @@ struct GeneralSettingsTab: View {
                 .accessibilityHint("Plays audio cues when recording starts and stops")
             }
 
+            #if APPSTORE
+            Section("Text Delivery") {
+                Text("After each dictation, the text is copied to your clipboard automatically. Press ⌘V to paste it into any app.")
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+            }
+            #else
             Section("Text Injection") {
                 Picker("Default Method", selection: Binding(
                     get: { settings?.defaultInjectionMethod ?? .auto },
@@ -76,7 +83,7 @@ struct GeneralSettingsTab: View {
                         saveSettings()
                     }
                 )) {
-                    ForEach(InjectionMethod.allCases) { method in
+                    ForEach(InjectionMethod.availableCases) { method in
                         Text(method.displayName).tag(method)
                     }
                 }
@@ -107,6 +114,7 @@ struct GeneralSettingsTab: View {
                 }
                 .help("Delay between simulated keystrokes (CGEvent mode)")
             }
+            #endif
         }
         .formStyle(.grouped)
         .onAppear {
@@ -143,6 +151,7 @@ struct GeneralSettingsTab: View {
         Logger.ui.info("Hotkey changed to: \(newValue)")
     }
 
+    #if !APPSTORE
     private var injectionMethodHelp: String {
         switch settings?.defaultInjectionMethod ?? .auto {
         case .auto:
@@ -153,6 +162,7 @@ struct GeneralSettingsTab: View {
             return "Copies text to clipboard and pastes with Cmd+V. Works everywhere but overwrites clipboard."
         }
     }
+    #endif
 
     private func saveSettings() {
         do {

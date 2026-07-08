@@ -159,6 +159,26 @@ struct OverlayContentView: View {
 
     // MARK: - Footer
 
+    // App Store builds deliver text via the clipboard (no synthetic keystrokes),
+    // so the confirm action is a copy rather than an injection.
+    #if APPSTORE
+    private static let confirmTitle = "Copy"
+    private static let confirmEditedLabel = "Copy edited text"
+    private static let confirmEditedHint = "Copies your edited text to the clipboard so you can paste it with Command V"
+    private static let confirmLabel = "Copy transcription"
+    private static let confirmHint = "Copies the transcribed text to the clipboard so you can paste it with Command V"
+    private static let editHint = "Opens the text editor to modify the transcription before copying"
+    private static let dismissHint = "Closes this panel without copying text"
+    #else
+    private static let confirmTitle = "Inject"
+    private static let confirmEditedLabel = "Inject edited text"
+    private static let confirmEditedHint = "Types your edited text at the cursor position"
+    private static let confirmLabel = "Inject transcription"
+    private static let confirmHint = "Types the transcribed text at the cursor position"
+    private static let editHint = "Opens the text editor to modify the transcription before injecting"
+    private static let dismissHint = "Closes this panel without injecting text"
+    #endif
+
     private var footerBar: some View {
         HStack(spacing: 10) {
             if isEditing {
@@ -172,7 +192,7 @@ struct OverlayContentView: View {
 
                 Spacer()
 
-                Button("Inject") {
+                Button(Self.confirmTitle) {
                     appState.overlayEditedText = editableText
                     appState.overlayEditConfirmed = true
                     isEditing = false
@@ -180,8 +200,8 @@ struct OverlayContentView: View {
                 .keyboardShortcut(.return, modifiers: [])
                 .buttonStyle(.borderedProminent)
                 .controlSize(.small)
-                .accessibilityLabel("Inject edited text")
-                .accessibilityHint("Types your edited text at the cursor position")
+                .accessibilityLabel(Self.confirmEditedLabel)
+                .accessibilityHint(Self.confirmEditedHint)
             } else {
                 Button {
                     isEditing = true
@@ -192,7 +212,7 @@ struct OverlayContentView: View {
                 .keyboardShortcut("e", modifiers: .command)
                 .disabled(appState.overlayText == nil)
                 .accessibilityLabel("Edit transcription")
-                .accessibilityHint("Opens the text editor to modify the transcription before injecting")
+                .accessibilityHint(Self.editHint)
 
                 Spacer()
 
@@ -202,17 +222,17 @@ struct OverlayContentView: View {
                 .keyboardShortcut(.escape, modifiers: [])
                 .controlSize(.small)
                 .accessibilityLabel("Dismiss overlay")
-                .accessibilityHint("Closes this panel without injecting text")
+                .accessibilityHint(Self.dismissHint)
 
-                Button("Inject") {
+                Button(Self.confirmTitle) {
                     appState.overlayEditConfirmed = true
                 }
                 .keyboardShortcut(.return, modifiers: [])
                 .buttonStyle(.borderedProminent)
                 .controlSize(.small)
                 .disabled(appState.overlayText == nil)
-                .accessibilityLabel("Inject transcription")
-                .accessibilityHint("Types the transcribed text at the cursor position")
+                .accessibilityLabel(Self.confirmLabel)
+                .accessibilityHint(Self.confirmHint)
             }
         }
         .padding(.horizontal, 14)

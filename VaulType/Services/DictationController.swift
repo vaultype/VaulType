@@ -49,7 +49,7 @@ final class DictationController: @unchecked Sendable {
     // MARK: - Configuration
 
     private var vadSensitivity: Float = 0.5
-    private var injectionMethod: InjectionMethod = .cgEvent
+    private var injectionMethod: InjectionMethod = .platformDefault
     private var pushToTalkEnabled: Bool = true
     private var defaultMode: ProcessingMode = .raw
     private var playSoundEffects: Bool = true
@@ -61,9 +61,14 @@ final class DictationController: @unchecked Sendable {
     private var globalShortcutAliases: [String: String] = [:]
 
     // Per-recording snapshots (captured at startRecording to avoid mid-recording app-switch race)
-    private var recordingInjectionMethod: InjectionMethod = .cgEvent
+    private var recordingInjectionMethod: InjectionMethod = .platformDefault
     private var recordingBundleIdentifier: String?
     private var recordingAppName: String?
+
+    #if APPSTORE
+    /// Auto-dismiss timer for the paste HUD.
+    @MainActor private var pasteHUDDismissTask: Task<Void, Never>?
+    #endif
 
     // MARK: - SwiftData (set after init)
 
@@ -396,6 +401,11 @@ final class DictationController: @unchecked Sendable {
             try await injectionService.inject(finalText, method: recordingInjectionMethod)
             soundService.play(.injectionComplete)
 
+            #if APPSTORE
+            // Clipboard-only delivery: prompt the user to paste manually.
+            showPasteHUDBriefly()
+            #endif
+
             // Save history entry (use snapshotted app info from recording start)
             let processedText = (finalText != rawText) ? finalText : nil
             await saveDictationEntry(
@@ -474,6 +484,23 @@ final class DictationController: @unchecked Sendable {
         appState.overlayEditCancelled = false
     }
 
+    #if APPSTORE
+    // MARK: - Paste HUD
+
+    /// Show the "Copied — press ⌘V to paste" HUD, auto-dismissing after a few
+    /// seconds. Rapid consecutive dictations reset the dismiss timer.
+    @MainActor
+    private func showPasteHUDBriefly() {
+        appState.showPasteHUD = true
+        pasteHUDDismissTask?.cancel()
+        pasteHUDDismissTask = Task { @MainActor [weak self] in
+            try? await Task.sleep(for: .seconds(4))
+            guard !Task.isCancelled else { return }
+            self?.appState.showPasteHUD = false
+        }
+    }
+    #endif
+
     // MARK: - Per-App Profile Resolution
 
     /// The effective processing mode — per-app override if available, else global default.
@@ -490,11 +517,17 @@ final class DictationController: @unchecked Sendable {
     /// The effective injection method — per-app override if available, else global default.
     @MainActor
     private var activeInjectionMethod: InjectionMethod {
+        #if APPSTORE
+        // Clipboard-only build: persisted profile/global values (possibly written
+        // by the direct-distribution build) are ignored at resolution time.
+        return .clipboard
+        #else
         if let profile = appContextService?.currentProfile,
            profile.isEnabled {
             return profile.injectionMethod
         }
         return injectionMethod
+        #endif
     }
 
     /// Resolve the current app's profile via AppContextService + SwiftData.

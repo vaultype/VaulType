@@ -142,7 +142,7 @@ final class UserSettings {
         whisperThreadCount: Int = 0,
         useGPUAcceleration: Bool = true,
         llmContextLength: Int = 2048,
-        defaultInjectionMethod: InjectionMethod = .cgEvent,
+        defaultInjectionMethod: InjectionMethod = .platformDefault,
         keystrokeDelay: Int = 5,
         batteryAwareModeEnabled: Bool = true,
         commandsEnabled: Bool = true,

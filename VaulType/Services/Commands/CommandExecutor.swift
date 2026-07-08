@@ -24,22 +24,18 @@ final class CommandExecutor {
             )
         }
 
-        // App Store builds cannot use AXUIElement, AppleScript, or spawned processes
-        #if APPSTORE
-        switch command.intent {
-        case .moveWindowLeft, .moveWindowRight, .maximizeWindow, .minimizeWindow,
-             .centerWindow, .moveToNextScreen,
-             .brightnessUp, .brightnessDown, .doNotDisturbToggle, .darkModeToggle, .lockScreen:
+        // App Store builds cannot use AXUIElement, AppleScript, spawned processes,
+        // or synthetic input events (Guideline 2.4.5)
+        guard command.intent.isAvailableInThisBuild else {
             Logger.commands.info("Command unavailable in App Store build: \(command.intent.rawValue)")
             return CommandResult(
                 success: false,
                 message: "\(command.intent.displayName) is not available in this version",
                 intent: command.intent
             )
-        default:
-            break
         }
-        #else
+
+        #if !APPSTORE
         // Check accessibility permission for window management commands
         if command.intent.category == .windowManagement && command.intent != .fullScreenToggle {
             guard AXIsProcessTrusted() else {
@@ -92,16 +88,21 @@ final class CommandExecutor {
             return try await handleOpenApp(command.entities["appName"] ?? "")
         case .switchToApp:
             return try handleSwitchToApp(command.entities["appName"] ?? "")
-        case .closeApp:
-            return try await handleCloseApp(command.entities["appName"] ?? "")
         case .quitApp:
             return try handleQuitApp(command.entities["appName"] ?? "")
         case .hideApp:
             return try handleHideApp(command.entities["appName"] ?? "")
+
+        #if !APPSTORE
+        // Synthetic-keystroke commands (Cmd+W / Ctrl+Up) — direct distribution only
+        case .closeApp:
+            return try await handleCloseApp(command.entities["appName"] ?? "")
         case .showAllWindows:
             return try handleShowAllWindows()
+        #endif
 
-        // Volume Control (works in both builds via media key simulation)
+        #if !APPSTORE
+        // Volume Control (media key simulation — direct distribution only)
         case .volumeUp:
             return try handleVolumeMediaKey(.soundUp, description: "Volume increased")
         case .volumeDown:
@@ -112,7 +113,6 @@ final class CommandExecutor {
             let level = command.entities["level"] ?? "50"
             return try handleSetVolumeViaMediaKeys(level)
 
-        #if !APPSTORE
         // Window Management (AXUIElement-dependent — direct distribution only)
         case .moveWindowLeft:
             return try handleTileWindow(.left)
@@ -138,20 +138,21 @@ final class CommandExecutor {
             return try await handleDarkModeToggle()
         case .lockScreen:
             return try await handleLockScreen()
-        #endif
 
-        // CGEvent-based commands (work in both builds with PostEvent TCC)
+        // CGEvent-based commands (synthetic keystrokes — direct distribution only)
         case .fullScreenToggle:
             return try handleFullScreenToggle()
         case .takeScreenshot:
             return try await handleScreenshot()
 
-        // Keyboard Shortcuts
+        // Keyboard Shortcuts (CGEvent-based — direct distribution only)
         case .injectShortcut:
             return try handleInjectShortcut(
                 modifiers: command.entities["modifiers"] ?? "",
                 key: command.entities["key"] ?? ""
             )
+        #endif
+
         case .runShortcut:
             return try await handleRunShortcut(command.entities["shortcutName"] ?? "")
         case .customAlias:
@@ -159,8 +160,9 @@ final class CommandExecutor {
 
         #if APPSTORE
         default:
-            // Window management and system control intents are blocked by the
-            // guard at the top of execute(), so this is unreachable.
+            // Window management, system control, volume, and synthetic-input
+            // intents are blocked by the guard at the top of execute(), so
+            // this is unreachable.
             throw CommandError.executionFailed("\(command.intent.displayName) is not available in this version")
         #endif
         }
@@ -216,6 +218,7 @@ final class CommandExecutor {
         return "Switched to \(app.localizedName ?? name)"
     }
 
+    #if !APPSTORE
     private func handleCloseApp(_ name: String) async throws -> String {
         guard !name.isEmpty else { throw CommandError.missingEntity("appName") }
         guard let app = findRunningApp(named: name) else {
@@ -228,6 +231,7 @@ final class CommandExecutor {
         sendKeyEvent(keyCode: 13, flags: .maskCommand) // W key
         return "Closed window in \(app.localizedName ?? name)"
     }
+    #endif
 
     private func handleQuitApp(_ name: String) throws -> String {
         guard !name.isEmpty else { throw CommandError.missingEntity("appName") }
@@ -247,11 +251,13 @@ final class CommandExecutor {
         return "Hid \(app.localizedName ?? name)"
     }
 
+    #if !APPSTORE
     private func handleShowAllWindows() throws -> String {
         // Ctrl+Up Arrow is the default Mission Control shortcut (no accessibility required)
         sendKeyEvent(keyCode: 126, flags: .maskControl) // Up Arrow key
         return "Showing Mission Control"
     }
+    #endif
 
     // MARK: - Window Management Handlers
 
@@ -403,7 +409,8 @@ final class CommandExecutor {
     }
     #endif
 
-    // MARK: - CGEvent-Based Handlers (sandbox-compatible with PostEvent TCC)
+    #if !APPSTORE
+    // MARK: - CGEvent-Based Handlers (direct distribution only)
 
     private func handleFullScreenToggle() throws -> String {
         // Ctrl+Cmd+F toggles native full screen
@@ -411,7 +418,7 @@ final class CommandExecutor {
         return "Toggled full screen"
     }
 
-    // MARK: - Volume Control (sandbox-compatible via media key events)
+    // MARK: - Volume Control (via media key events)
 
     /// Media key types from IOKit/hidsystem/ev_keymap.h (NX_KEYTYPE_*).
     private enum MediaKeyType: Int {
@@ -448,15 +455,7 @@ final class CommandExecutor {
     }
 
     /// Post a simulated media key press (key down + key up) via NSSystemDefined CGEvent.
-    /// Works in sandbox with PostEvent TCC permission.
     private func postMediaKeyEvent(_ key: MediaKeyType) -> Bool {
-        #if APPSTORE
-        guard CGPreflightPostEventAccess() else {
-            Logger.commands.warning("PostEvent permission not granted, cannot post media key event")
-            return false
-        }
-        #endif
-
         let keyCode = key.rawValue
 
         // NX_SUBTYPE_AUX_CONTROL_BUTTONS = 8
@@ -496,7 +495,6 @@ final class CommandExecutor {
 
     // MARK: - System Control Handlers (direct distribution only)
 
-    #if !APPSTORE
     private enum OsascriptMediaAction {
         case brightnessUp, brightnessDown
     }
@@ -587,13 +585,13 @@ final class CommandExecutor {
             }
         }
     }
-    #endif
 
     private func handleScreenshot() async throws -> String {
         // Cmd+Shift+5 opens screenshot UI
         sendKeyEvent(keyCode: 23, flags: [.maskCommand, .maskShift]) // 5 key
         return "Screenshot tool opened"
     }
+    #endif
 
     // MARK: - Workflow Handlers
 
@@ -609,7 +607,8 @@ final class CommandExecutor {
         return "Running shortcut: \(name)"
     }
 
-    // MARK: - Keyboard Shortcut Handler
+    #if !APPSTORE
+    // MARK: - Keyboard Shortcut Handler (direct distribution only)
 
     private func handleInjectShortcut(modifiers modifiersStr: String, key keyStr: String) throws -> String {
         guard !keyStr.isEmpty else { throw CommandError.missingEntity("key") }
@@ -653,6 +652,7 @@ final class CommandExecutor {
 
         return "Pressed \(parts.joined(separator: "+"))"
     }
+    #endif
 
     // MARK: - Helpers
 
@@ -698,14 +698,8 @@ final class CommandExecutor {
         return known[name.lowercased()] ?? "com.apple.\(name)"
     }
 
+    #if !APPSTORE
     private func sendKeyEvent(keyCode: CGKeyCode, flags: CGEventFlags = []) {
-        #if APPSTORE
-        guard CGPreflightPostEventAccess() else {
-            Logger.commands.warning("PostEvent permission not granted, cannot send key event")
-            return
-        }
-        #endif
-
         let src = CGEventSource(stateID: .hidSystemState)
         if let keyDown = CGEvent(keyboardEventSource: src, virtualKey: keyCode, keyDown: true),
            let keyUp = CGEvent(keyboardEventSource: src, virtualKey: keyCode, keyDown: false) {
@@ -717,6 +711,7 @@ final class CommandExecutor {
             Logger.commands.warning("Failed to create CGEvent for keyCode \(keyCode)")
         }
     }
+    #endif
 
 }
 

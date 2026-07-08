@@ -68,19 +68,24 @@ struct CommandSettingsTab: View {
 
             // MARK: - Built-in Commands section (grouped by category)
             ForEach(CommandCategory.allCases) { category in
-                Section {
-                    ForEach(registry.entries(for: category)) { entry in
-                        BuiltInCommandRow(entry: entry, isParentEnabled: commandsEnabled) { intent, enabled in
-                            registry.setEnabled(intent, enabled: enabled)
-                            persistRegistryState()
+                let entries = registry.entries(for: category)
+                    .filter { $0.intent.isAvailableInThisBuild }
+                if !entries.isEmpty {
+                    Section {
+                        ForEach(entries) { entry in
+                            BuiltInCommandRow(entry: entry, isParentEnabled: commandsEnabled) { intent, enabled in
+                                registry.setEnabled(intent, enabled: enabled)
+                                persistRegistryState()
+                            }
                         }
+                    } header: {
+                        Label(category.rawValue, systemImage: category.iconName)
                     }
-                } header: {
-                    Label(category.rawValue, systemImage: category.iconName)
                 }
             }
 
-            // MARK: - Global Shortcut Aliases section
+            #if !APPSTORE
+            // MARK: - Global Shortcut Aliases section (inject via CGEvent — direct only)
             Section {
                 let sortedAliases = globalAliases.sorted(by: { $0.key < $1.key })
                 if sortedAliases.isEmpty {
@@ -126,6 +131,7 @@ struct CommandSettingsTab: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
+            #endif
 
             // MARK: - Custom Commands section
             Section {

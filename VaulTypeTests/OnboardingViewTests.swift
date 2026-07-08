@@ -140,6 +140,7 @@ final class OnboardingViewTests: XCTestCase {
         manager.requestMicrophoneAccess()
     }
 
+    #if !APPSTORE
     func testPermissionsManagerHasOpenAccessibilitySettingsMethod() {
         // Verify that `openAccessibilitySettings()` can be called without crashing.
         // In a test environment, NSWorkspace.open() will either silently no-op or
@@ -147,6 +148,7 @@ final class OnboardingViewTests: XCTestCase {
         let manager = PermissionsManager()
         manager.openAccessibilitySettings()
     }
+    #endif
 
     // MARK: - PermissionsManager refreshAccessibilityStatus Tests
 
@@ -158,7 +160,9 @@ final class OnboardingViewTests: XCTestCase {
         manager.refreshAccessibilityStatus()
 
         #if APPSTORE
-        let expected = CGPreflightPostEventAccess()
+        // App Store builds never use post-event APIs; the property is a
+        // constant-false stub (clipboard-only text delivery).
+        let expected = false
         #else
         let expected = AXIsProcessTrusted()
         #endif
@@ -193,7 +197,8 @@ final class OnboardingViewTests: XCTestCase {
         // not start in a stale state.
         let manager = PermissionsManager()
         #if APPSTORE
-        let expected = CGPreflightPostEventAccess()
+        // Constant-false stub in App Store builds (no post-event APIs).
+        let expected = false
         #else
         let expected = AXIsProcessTrusted()
         #endif

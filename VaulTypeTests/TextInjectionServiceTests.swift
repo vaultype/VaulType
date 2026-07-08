@@ -22,6 +22,7 @@ final class TextInjectionServiceTests: XCTestCase {
 
     // MARK: - Auto-Detection Tests
 
+    #if !APPSTORE
     func testAutoDetectCGEvent() async throws {
         // Short ASCII text should select CGEvent method
         let shortText = "Hello World"
@@ -40,6 +41,7 @@ final class TextInjectionServiceTests: XCTestCase {
         // If we have permission, verify no error is thrown for short ASCII text
         try await service.inject(shortText, method: .auto)
     }
+    #endif
 
     func testAutoDetectClipboard() async throws {
         // Long text should select clipboard method
@@ -101,7 +103,8 @@ final class TextInjectionServiceTests: XCTestCase {
         }
     }
 
-    // MARK: - CGEventInjector Tests
+    #if !APPSTORE
+    // MARK: - CGEventInjector Tests (direct distribution only)
 
     func testCGEventInjectorCreatesEvents() {
         // Test event source creation
@@ -178,6 +181,7 @@ final class TextInjectionServiceTests: XCTestCase {
             XCTAssertNotNil(keyEvent)
         }
     }
+    #endif
 
     // MARK: - ClipboardInjector Tests
 
@@ -315,6 +319,29 @@ final class TextInjectionServiceTests: XCTestCase {
 
     // MARK: - Method Selection Tests
 
+    #if APPSTORE
+    func testCGEventMethodFallsBackToClipboard() async throws {
+        // App Store builds are clipboard-only: requesting .cgEvent must not
+        // throw and must land the text on the pasteboard instead.
+        let pasteboard = NSPasteboard.general
+        let originalItems = pasteboard.pasteboardItems
+
+        let testText = "clipboard-only delivery"
+        try await service.inject(testText, method: .cgEvent)
+
+        XCTAssertEqual(
+            pasteboard.string(forType: .string),
+            testText,
+            "App Store build must deliver .cgEvent requests via the clipboard"
+        )
+
+        // Restore clipboard
+        if let items = originalItems {
+            pasteboard.clearContents()
+            pasteboard.writeObjects(items)
+        }
+    }
+    #else
     func testExplicitCGEventMethod() async throws {
         // When explicitly requesting CGEvent, should fail if no accessibility permission
         guard permissionsManager.accessibilityEnabled else {
@@ -334,6 +361,7 @@ final class TextInjectionServiceTests: XCTestCase {
         // If we have accessibility permission, should succeed
         try await service.inject("test", method: .cgEvent)
     }
+    #endif
 
     func testExplicitClipboardMethod() async throws {
         let pasteboard = NSPasteboard.general

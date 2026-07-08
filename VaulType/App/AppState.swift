@@ -180,6 +180,12 @@ final class AppState {
     /// Set to true when user cancels injection from overlay.
     var overlayEditCancelled: Bool = false
 
+    // MARK: - Paste HUD
+
+    /// When true, show the "Copied — press ⌘V to paste" HUD
+    /// (clipboard-only text delivery).
+    var showPasteHUD: Bool = false
+
     // MARK: - Command State
 
     /// Whether a voice command is currently being executed.

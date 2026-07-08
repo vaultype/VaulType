@@ -42,7 +42,9 @@ enum TextInjectionError: Error, LocalizedError {
 final class TextInjectionService: TextInjecting, @unchecked Sendable {
     // MARK: - Properties
 
+    #if !APPSTORE
     private let cgEventInjector: CGEventInjector
+    #endif
     private let clipboardInjector: ClipboardInjector
     private let permissionsManager: PermissionsManager
 
@@ -53,7 +55,9 @@ final class TextInjectionService: TextInjecting, @unchecked Sendable {
 
     init(permissionsManager: PermissionsManager, keystrokeDelayMs: Int = 5) {
         self.permissionsManager = permissionsManager
+        #if !APPSTORE
         self.cgEventInjector = CGEventInjector()
+        #endif
         self.clipboardInjector = ClipboardInjector()
         self.keystrokeDelayMs = keystrokeDelayMs
     }
@@ -61,6 +65,12 @@ final class TextInjectionService: TextInjecting, @unchecked Sendable {
     // MARK: - Text Injection
 
     func inject(_ text: String, method: InjectionMethod) async throws {
+        #if APPSTORE
+        // App Store builds are clipboard-only (Guideline 2.4.5): the requested
+        // method is ignored and text is always delivered via the clipboard.
+        Logger.injection.info("Starting text injection (clipboard-only build)")
+        try await clipboardInjector.inject(text)
+        #else
         Logger.injection.info("Starting text injection using method: \(method.rawValue)")
 
         permissionsManager.refreshAccessibilityStatus()
@@ -81,10 +91,12 @@ final class TextInjectionService: TextInjecting, @unchecked Sendable {
         case .clipboard:
             try await clipboardInjector.inject(text)
         }
+        #endif
 
         Logger.injection.info("Text injection completed successfully")
     }
 
+    #if !APPSTORE
     // MARK: - Auto-Detection
 
     /// Determines the actual injection method to use based on the preferred method
@@ -107,8 +119,10 @@ final class TextInjectionService: TextInjecting, @unchecked Sendable {
             }
         }
     }
+    #endif
 }
 
+#if !APPSTORE
 // MARK: - Resolved Method
 
 /// Internal representation of resolved injection method.
@@ -116,3 +130,4 @@ private enum ResolvedMethod {
     case cgEvent
     case clipboard
 }
+#endif
