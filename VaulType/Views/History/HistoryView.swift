@@ -118,36 +118,54 @@ struct HistoryView: View {
 
     // MARK: - Edit & Re-inject Sheet
 
+    // App Store builds deliver text via the clipboard, so the action is a
+    // copy rather than typing at the cursor.
+    #if APPSTORE
+    private static let editSheetTitle = "Edit & Copy"
+    private static let editSheetConfirm = "Copy"
+    private static let editSheetConfirmLabel = "Copy edited text"
+    private static let editSheetConfirmHint = "Copies the edited text to the clipboard so you can paste it with Command V"
+    private static let editSheetEditorHint = "Modify the text, then press Copy to put it on the clipboard"
+    private static let editSheetCancelHint = "Closes the editor without copying"
+    #else
+    private static let editSheetTitle = "Edit & Inject"
+    private static let editSheetConfirm = "Inject at Cursor"
+    private static let editSheetConfirmLabel = "Inject at cursor"
+    private static let editSheetConfirmHint = "Types the edited text at the current cursor position"
+    private static let editSheetEditorHint = "Modify the text, then press Inject at Cursor to insert it"
+    private static let editSheetCancelHint = "Closes the editor without injecting"
+    #endif
+
     private var editAndInjectSheet: some View {
         VStack(spacing: 16) {
             HStack {
-                Text("Edit & Inject")
+                Text(Self.editSheetTitle)
                     .font(.headline)
                 Spacer()
                 Button("Cancel") {
                     isEditingForInject = false
                 }
                 .accessibilityLabel("Cancel")
-                .accessibilityHint("Closes the editor without injecting")
+                .accessibilityHint(Self.editSheetCancelHint)
             }
 
             TextEditor(text: $editText)
                 .font(.body)
                 .frame(minHeight: 120)
                 .border(Color.secondary.opacity(0.3))
-                .accessibilityLabel("Edit text before injection")
-                .accessibilityHint("Modify the text, then press Inject at Cursor to insert it")
+                .accessibilityLabel("Edit text")
+                .accessibilityHint(Self.editSheetEditorHint)
 
             HStack {
                 Spacer()
-                Button("Inject at Cursor") {
+                Button(Self.editSheetConfirm) {
                     injectText(editText)
                     isEditingForInject = false
                 }
                 .buttonStyle(.borderedProminent)
                 .keyboardShortcut(.return, modifiers: .command)
-                .accessibilityLabel("Inject at cursor")
-                .accessibilityHint("Types the edited text at the current cursor position")
+                .accessibilityLabel(Self.editSheetConfirmLabel)
+                .accessibilityHint(Self.editSheetConfirmHint)
             }
         }
         .padding(20)
