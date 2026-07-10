@@ -180,11 +180,19 @@ final class AppState {
     /// Set to true when user cancels injection from overlay.
     var overlayEditCancelled: Bool = false
 
-    // MARK: - Paste HUD
+    // MARK: - Status HUD
 
-    /// When true, show the "Copied — press ⌘V to paste" HUD
-    /// (clipboard-only text delivery).
-    var showPasteHUD: Bool = false
+    /// Transient floating HUD content (paste reminder, permission errors).
+    struct StatusHUD: Equatable {
+        var text: String
+        var systemImage: String
+        /// When set, clicking the HUD opens this URL (e.g. a System Settings
+        /// pane for permission recovery) and dismisses the HUD.
+        var openURLOnClick: URL?
+    }
+
+    /// When non-nil, the floating status HUD is shown with this content.
+    var statusHUD: StatusHUD?
 
     // MARK: - Command State
 

@@ -2,40 +2,52 @@ import AppKit
 import SwiftUI
 import os
 
-/// Compact HUD shown after a dictation lands on the clipboard, prompting the
-/// user to paste manually. Used by App Store builds, where text delivery is
-/// clipboard-only (Guideline 2.4.5 — no synthetic keystrokes).
-struct PasteHUDView: View {
+/// Compact transient HUD for short status messages — the "Copied — press ⌘V
+/// to paste" reminder (App Store clipboard-only delivery) and errors that need
+/// a visible surface (e.g. microphone permission denied).
+struct StatusHUDView: View {
     var appState: AppState
 
     var body: some View {
-        Label("Copied — press ⌘V to paste", systemImage: "doc.on.clipboard.fill")
-            .font(.callout)
-            .fontWeight(.medium)
-            .padding(.horizontal, 16)
-            .padding(.vertical, 10)
-            .background {
-                if appState.prefersReducedTransparency {
-                    Capsule().fill(Color(NSColor.windowBackgroundColor))
-                } else {
-                    Capsule().fill(.ultraThinMaterial)
+        // Render nothing when there is no content — the panel hides
+        // asynchronously, and an empty capsule must not flash meanwhile.
+        if let content = appState.statusHUD {
+            Label(content.text, systemImage: content.systemImage)
+                .font(.callout)
+                .fontWeight(.medium)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 10)
+                .frame(maxWidth: 560)
+                .background {
+                    if appState.prefersReducedTransparency {
+                        Capsule().fill(Color(NSColor.windowBackgroundColor))
+                    } else {
+                        Capsule().fill(.ultraThinMaterial)
+                    }
                 }
-            }
-            .overlay(
-                Capsule()
-                    .stroke(
-                        appState.prefersHighContrast
-                            ? Color.primary.opacity(0.5)
-                            : Color.primary.opacity(0.1),
-                        lineWidth: appState.prefersHighContrast ? 2 : 1
-                    )
-            )
-            .accessibilityLabel("Transcription copied to clipboard. Press Command V to paste.")
+                .overlay(
+                    Capsule()
+                        .stroke(
+                            appState.prefersHighContrast
+                                ? Color.primary.opacity(0.5)
+                                : Color.primary.opacity(0.1),
+                            lineWidth: appState.prefersHighContrast ? 2 : 1
+                        )
+                )
+                .contentShape(Capsule())
+                .onTapGesture {
+                    guard let url = content.openURLOnClick else { return }
+                    NSWorkspace.shared.open(url)
+                    appState.statusHUD = nil
+                }
+                .accessibilityLabel(content.text)
+                .accessibilityAddTraits(content.openURLOnClick != nil ? .isButton : [])
+        }
     }
 }
 
-/// Floating non-activating panel hosting PasteHUDView. Owned by AppDelegate.
-final class PasteHUDWindow: NSPanel {
+/// Floating non-activating panel hosting StatusHUDView. Owned by AppDelegate.
+final class StatusHUDWindow: NSPanel {
     init() {
         super.init(
             contentRect: NSRect(x: 0, y: 0, width: 280, height: 44),
@@ -57,18 +69,22 @@ final class PasteHUDWindow: NSPanel {
         ignoresMouseEvents = true
         collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .transient]
 
-        Logger.ui.info("PasteHUDWindow initialized")
+        Logger.ui.info("StatusHUDWindow initialized")
     }
 
     /// Set the SwiftUI content view with app state binding.
     func setContent(appState: AppState) {
-        let hosting = NSHostingView(rootView: PasteHUDView(appState: appState))
+        let hosting = NSHostingView(rootView: StatusHUDView(appState: appState))
         hosting.frame = contentRect(forFrameRect: frame)
         contentView = hosting
     }
 
     /// Show the HUD centered near the bottom of the main screen.
-    func showHUD() {
+    /// - Parameter interactive: When true the panel accepts clicks (actionable
+    ///   HUDs like permission errors); otherwise it stays click-through so it
+    ///   never blocks the app underneath (paste reminder).
+    func showHUD(interactive: Bool = false) {
+        ignoresMouseEvents = !interactive
         guard let screen = NSScreen.main else { return }
         // Size to fit the hosted capsule before positioning
         if let contentView {

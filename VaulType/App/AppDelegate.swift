@@ -30,7 +30,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var llmService: LLMService?
     private var registryService: ModelRegistryService?
     private var overlayWindow: OverlayWindow?
-    private var pasteHUDWindow: PasteHUDWindow?
+    private var statusHUDWindow: StatusHUDWindow?
     private var powerManagementService: PowerManagementService?
 
     // Track currently loaded models and hotkey to detect selection changes
@@ -391,11 +391,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         self.overlayWindow = overlay
         startOverlayObservation()
 
-        // Create paste HUD panel ("Copied — press ⌘V to paste")
-        let pasteHUD = PasteHUDWindow()
-        pasteHUD.setContent(appState: appState)
-        self.pasteHUDWindow = pasteHUD
-        startPasteHUDObservation()
+        // Create status HUD panel (paste reminder, permission errors)
+        let statusHUD = StatusHUDWindow()
+        statusHUD.setContent(appState: appState)
+        self.statusHUDWindow = statusHUD
+        startStatusHUDObservation()
 
         os_signpost(.end, log: startupLog, name: "pipelineCore", signpostID: startupSignpostID)
         Logger.performance.info("Pipeline core ready — menu bar active")
@@ -490,20 +490,20 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
-    private func startPasteHUDObservation() {
+    private func startStatusHUDObservation() {
         Task { @MainActor [weak self] in
             while let self = self {
                 await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
                     withObservationTracking {
-                        _ = self.appState.showPasteHUD
+                        _ = self.appState.statusHUD
                     } onChange: {
                         continuation.resume()
                     }
                 }
-                if self.appState.showPasteHUD {
-                    self.pasteHUDWindow?.showHUD()
+                if let content = self.appState.statusHUD {
+                    self.statusHUDWindow?.showHUD(interactive: content.openURLOnClick != nil)
                 } else {
-                    self.pasteHUDWindow?.hideHUD()
+                    self.statusHUDWindow?.hideHUD()
                 }
             }
         }

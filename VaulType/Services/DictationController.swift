@@ -1,4 +1,5 @@
 import AppKit
+import AVFoundation
 import Foundation
 import SwiftData
 import os
@@ -65,10 +66,8 @@ final class DictationController: @unchecked Sendable {
     private var recordingBundleIdentifier: String?
     private var recordingAppName: String?
 
-    #if APPSTORE
-    /// Auto-dismiss timer for the paste HUD.
-    @MainActor private var pasteHUDDismissTask: Task<Void, Never>?
-    #endif
+    /// Auto-dismiss timer for the status HUD.
+    @MainActor private var statusHUDDismissTask: Task<Void, Never>?
 
     // MARK: - SwiftData (set after init)
 
@@ -172,6 +171,26 @@ final class DictationController: @unchecked Sendable {
             return
         }
 
+        // Microphone permission gate: AVAudioEngine does not fail when access
+        // is denied — it silently delivers silence — so fail loudly here and
+        // point the user to System Settings instead.
+        guard await ensureMicrophoneAccess() else {
+            let message = "Microphone access is off — click to open System Settings"
+            Logger.general.warning("Recording blocked — microphone permission not granted")
+            updateState(.error(message))
+            appState.announceError(message)
+            showStatusHUD(
+                text: message,
+                systemImage: "mic.slash.fill",
+                duration: 6,
+                openURLOnClick: URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Microphone")
+            )
+            // Keep the error state visible before returning to idle
+            try? await Task.sleep(for: .seconds(4))
+            updateState(.idle)
+            return
+        }
+
         // Resolve per-app profile overrides and snapshot state before recording
         resolveAppProfileOverrides()
         recordingInjectionMethod = activeInjectionMethod
@@ -195,6 +214,21 @@ final class DictationController: @unchecked Sendable {
             // Delay idle transition so the error is observable by the UI
             try? await Task.sleep(for: .seconds(3))
             updateState(.idle)
+        }
+    }
+
+    /// Verify microphone permission before capture.
+    /// Requests access if the user has never been asked (e.g. onboarding was
+    /// quit early); returns false when access is denied or restricted.
+    @MainActor
+    private func ensureMicrophoneAccess() async -> Bool {
+        switch AVCaptureDevice.authorizationStatus(for: .audio) {
+        case .authorized:
+            return true
+        case .notDetermined:
+            return await AVCaptureDevice.requestAccess(for: .audio)
+        default:
+            return false
         }
     }
 
@@ -403,7 +437,7 @@ final class DictationController: @unchecked Sendable {
 
             #if APPSTORE
             // Clipboard-only delivery: prompt the user to paste manually.
-            showPasteHUDBriefly()
+            showStatusHUD(text: "Copied — press ⌘V to paste", systemImage: "doc.on.clipboard.fill")
             #endif
 
             // Save history entry (use snapshotted app info from recording start)
@@ -484,22 +518,21 @@ final class DictationController: @unchecked Sendable {
         appState.overlayEditCancelled = false
     }
 
-    #if APPSTORE
-    // MARK: - Paste HUD
+    // MARK: - Status HUD
 
-    /// Show the "Copied — press ⌘V to paste" HUD, auto-dismissing after a few
-    /// seconds. Rapid consecutive dictations reset the dismiss timer.
+    /// Show a transient floating HUD message (paste reminder, permission
+    /// errors), auto-dismissing after a few seconds. Consecutive calls reset
+    /// the dismiss timer.
     @MainActor
-    private func showPasteHUDBriefly() {
-        appState.showPasteHUD = true
-        pasteHUDDismissTask?.cancel()
-        pasteHUDDismissTask = Task { @MainActor [weak self] in
-            try? await Task.sleep(for: .seconds(4))
+    private func showStatusHUD(text: String, systemImage: String, duration: Double = 4, openURLOnClick: URL? = nil) {
+        appState.statusHUD = AppState.StatusHUD(text: text, systemImage: systemImage, openURLOnClick: openURLOnClick)
+        statusHUDDismissTask?.cancel()
+        statusHUDDismissTask = Task { @MainActor [weak self] in
+            try? await Task.sleep(for: .seconds(duration))
             guard !Task.isCancelled else { return }
-            self?.appState.showPasteHUD = false
+            self?.appState.statusHUD = nil
         }
     }
-    #endif
 
     // MARK: - Per-App Profile Resolution
 
