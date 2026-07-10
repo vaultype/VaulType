@@ -12,6 +12,9 @@ struct MenuBarView: View {
     var appState: AppState
     @Environment(\.openWindow) private var openWindow
     @Environment(\.openSettings) private var openSettings
+    /// Dismisses the MenuBarExtra popup — window-style popups do not
+    /// auto-close when a button inside them is clicked.
+    @Environment(\.dismiss) private var dismiss
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -123,6 +126,7 @@ struct MenuBarView: View {
             // MARK: - Action Buttons
             VStack(spacing: 8) {
                 Button {
+                    dismiss()
                     openWindow(id: "history")
                     Self.raiseWindow { $0.title == "Dictation History" }
                 } label: {
@@ -139,6 +143,7 @@ struct MenuBarView: View {
                 .accessibilityHint("Opens the dictation history window")
 
                 Button {
+                    dismiss()
                     openSettings()
                     Self.raiseWindow { window in
                         window.identifier?.rawValue.contains("Settings") == true
