@@ -5,8 +5,8 @@ import os
 struct HistorySettingsTab: View {
     @Environment(\.modelContext) private var modelContext
     @State private var settings: UserSettings?
-    @State private var maxEntries: Int = 5000
-    @State private var retentionDays: Int = 90
+    @State private var maxEntriesText: String = "5000"
+    @State private var retentionDaysText: String = "90"
     @State private var storeText: Bool = true
     @State private var showClearConfirmation: Bool = false
     @State private var showResetConfirmation: Bool = false
@@ -18,30 +18,42 @@ struct HistorySettingsTab: View {
                 HStack {
                     Text("Max entries")
                     Spacer()
-                    TextField("", value: $maxEntries, format: .number)
+                    TextField("", text: $maxEntriesText)
                         .frame(width: 80)
                         .textFieldStyle(.roundedBorder)
                         .multilineTextAlignment(.trailing)
-                        .onChange(of: maxEntries) { _, newValue in
-                            settings?.maxHistoryEntries = newValue
-                            saveSettings()
+                        .onChange(of: maxEntriesText) { _, newValue in
+                            let sanitized = sanitizeNumericInput(newValue, maxDigits: 6)
+                            if sanitized != newValue {
+                                maxEntriesText = sanitized
+                            }
+                            if let value = Int(sanitized) {
+                                settings?.maxHistoryEntries = value
+                                saveSettings()
+                            }
                         }
-                        .accessibilityLabel("Maximum history entries: \(maxEntries)")
+                        .accessibilityLabel("Maximum history entries: \(maxEntriesText)")
                         .accessibilityHint("Set to 0 for unlimited. Oldest entries beyond this limit are automatically removed.")
                 }
 
                 HStack {
                     Text("Retention (days)")
                     Spacer()
-                    TextField("", value: $retentionDays, format: .number)
+                    TextField("", text: $retentionDaysText)
                         .frame(width: 80)
                         .textFieldStyle(.roundedBorder)
                         .multilineTextAlignment(.trailing)
-                        .onChange(of: retentionDays) { _, newValue in
-                            settings?.historyRetentionDays = newValue
-                            saveSettings()
+                        .onChange(of: retentionDaysText) { _, newValue in
+                            let sanitized = sanitizeNumericInput(newValue, maxDigits: 4)
+                            if sanitized != newValue {
+                                retentionDaysText = sanitized
+                            }
+                            if let value = Int(sanitized) {
+                                settings?.historyRetentionDays = value
+                                saveSettings()
+                            }
                         }
-                        .accessibilityLabel("Retention days: \(retentionDays)")
+                        .accessibilityLabel("Retention days: \(retentionDaysText)")
                         .accessibilityHint("Entries older than this many days are automatically deleted. Set to 0 for unlimited.")
                 }
 
@@ -110,10 +122,15 @@ struct HistorySettingsTab: View {
     private func loadSettings() {
         if let s = try? UserSettings.shared(in: modelContext) {
             settings = s
-            maxEntries = s.maxHistoryEntries
-            retentionDays = s.historyRetentionDays
+            maxEntriesText = String(s.maxHistoryEntries)
+            retentionDaysText = String(s.historyRetentionDays)
             storeText = s.storeTranscriptionText
         }
+    }
+
+    /// Keep numeric text fields digits-only with a sane length cap.
+    private func sanitizeNumericInput(_ input: String, maxDigits: Int) -> String {
+        String(input.filter(\.isNumber).prefix(maxDigits))
     }
 
     private func countEntries() {

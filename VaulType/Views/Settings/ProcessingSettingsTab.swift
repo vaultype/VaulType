@@ -7,6 +7,7 @@ struct ProcessingSettingsTab: View {
     @Query private var allTemplates: [PromptTemplate]
     @State private var settings: UserSettings?
     @State private var showTemplateEditor = false
+    @State private var contextLengthText: String = "2048"
     private var templatesForMode: [PromptTemplate] {
         let mode = settings?.defaultMode ?? .clean
         return allTemplates.filter { $0.mode == mode }
@@ -120,16 +121,21 @@ struct ProcessingSettingsTab: View {
 
             Section("Advanced") {
                 LabeledContent("LLM Context Length") {
-                    TextField("Tokens", value: Binding(
-                        get: { settings?.llmContextLength ?? 2048 },
-                        set: { newValue in
-                            settings?.llmContextLength = newValue
-                            saveSettings()
+                    TextField("Tokens", text: $contextLengthText)
+                        .multilineTextAlignment(.trailing)
+                        .frame(width: 100)
+                        .onChange(of: contextLengthText) { _, newValue in
+                            // Digits only, capped at 6 characters
+                            let sanitized = String(newValue.filter(\.isNumber).prefix(6))
+                            if sanitized != newValue {
+                                contextLengthText = sanitized
+                            }
+                            if let value = Int(sanitized), value > 0 {
+                                settings?.llmContextLength = value
+                                saveSettings()
+                            }
                         }
-                    ), format: .number)
-                    .multilineTextAlignment(.trailing)
-                    .frame(width: 100)
-                    .help("Maximum context length in tokens for LLM processing (default: 2048)")
+                        .help("Maximum context length in tokens for LLM processing (default: 2048)")
                 }
 
                 Text("Larger context lengths allow processing longer text but use more memory")
@@ -150,6 +156,7 @@ struct ProcessingSettingsTab: View {
     private func loadSettings() {
         do {
             settings = try UserSettings.shared(in: modelContext)
+            contextLengthText = String(settings?.llmContextLength ?? 2048)
             Logger.ui.debug("Loaded user settings in Processing tab")
         } catch {
             Logger.ui.error("Failed to load UserSettings: \(error.localizedDescription)")
