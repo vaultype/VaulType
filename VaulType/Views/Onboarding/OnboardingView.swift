@@ -78,6 +78,13 @@ struct OnboardingView: View {
                     .accessibilityHint("Skips model download. You can download models later in Settings.")
                 } else if currentStep < totalSteps - 1 {
                     Button("Continue") {
+                        // Leaving the microphone step triggers the system
+                        // permission dialog — the app's own UI stays neutral
+                        // (Guideline 5.1.1(iv)).
+                        if currentStep == 1,
+                           AVCaptureDevice.authorizationStatus(for: .audio) == .notDetermined {
+                            permissionsManager.requestMicrophoneAccess()
+                        }
                         if reduceMotion { currentStep += 1 } else { withAnimation { currentStep += 1 } }
                     }
                     .buttonStyle(.borderedProminent)
@@ -160,16 +167,12 @@ struct OnboardingView: View {
                     .font(.callout)
                     .accessibilityLabel("Microphone access granted")
             } else {
-                Button("Grant Microphone Access") {
-                    permissionsManager.requestMicrophoneAccess()
-                }
-                .buttonStyle(.bordered)
-                .accessibilityLabel("Grant microphone access")
-                .accessibilityHint("Opens the system permission dialog to allow VaulType to use the microphone")
-
-                Text("Microphone access is required for dictation. You can grant it later in System Settings.")
+                // No "Grant" button here: pre-permission UI must stay neutral
+                // (Guideline 5.1.1(iv)). The wizard's Continue button triggers
+                // the system permission dialog.
+                Text("Dictation can't work without the microphone. You can change this anytime in System Settings.")
                     .font(.caption)
-                    .foregroundStyle(.orange)
+                    .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
                     .frame(maxWidth: 340)
             }
