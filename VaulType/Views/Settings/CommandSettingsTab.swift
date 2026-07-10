@@ -61,9 +61,17 @@ struct CommandSettingsTab: View {
                         .accessibilityHint("The phrase you say before a voice command, for example Hey Type open Safari")
                 }
 
+                #if APPSTORE
+                // Volume commands are unavailable in the App Store build —
+                // keep the example to commands that exist here.
+                Text("Say the wake phrase followed by a command. For example: \"\(commandWakePhrase), open Safari\" or \"\(commandWakePhrase), switch to Finder\".")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                #else
                 Text("Say the wake phrase followed by a command. For example: \"\(commandWakePhrase), open Safari\" or \"\(commandWakePhrase), volume up\".")
                     .font(.caption)
                     .foregroundStyle(.secondary)
+                #endif
             }
 
             // MARK: - Built-in Commands section (grouped by category)
