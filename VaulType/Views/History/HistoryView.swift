@@ -547,12 +547,21 @@ private struct HistoryDetailView: View {
                     Button {
                         onEditAndInject()
                     } label: {
+                        #if APPSTORE
+                        Label("Edit & Copy", systemImage: "doc.on.clipboard")
+                        #else
                         Label("Edit & Inject", systemImage: "text.cursor")
+                        #endif
                     }
                     .buttonStyle(.bordered)
                     .controlSize(.small)
+                    #if APPSTORE
+                    .accessibilityLabel("Edit and copy")
+                    .accessibilityHint("Opens the editor to modify this entry and copy it to the clipboard")
+                    #else
                     .accessibilityLabel("Edit and inject")
                     .accessibilityHint("Opens the editor to modify this entry and inject text at the cursor")
+                    #endif
                 }
 
                 Spacer()
