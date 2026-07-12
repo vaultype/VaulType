@@ -52,9 +52,10 @@ struct AboutSettingsTab: View {
             #endif
 
             VStack(spacing: 12) {
-                #if !APPSTORE
-                // The landing page's primary CTA is the direct download —
-                // keep it out of the App Store build (Guideline 2.3.10).
+                // Safe for the App Store build since Jul 2026: vaultype.app
+                // carries the Mac App Store badge alongside the direct
+                // download, so it is no longer a pure direct-download
+                // funnel (Guideline 2.3.10).
                 Link(destination: URL(string: "https://vaultype.app")!) {
                     HStack {
                         Image(systemName: "globe")
@@ -62,7 +63,6 @@ struct AboutSettingsTab: View {
                     }
                 }
                 .accessibilityLabel("Visit VaulType website")
-                #endif
 
                 Link(destination: URL(string: "https://github.com/vaultype/VaulType")!) {
                     HStack {
