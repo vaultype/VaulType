@@ -120,6 +120,12 @@ If you prefer a manual installation:
 
 > :warning: **Important:** Do not run VaulType directly from the DMG. Always copy it to `/Applications` first — running from a mounted disk image can cause permission issues and prevents auto-updates from working correctly.
 
+### 2.3 Mac App Store
+
+VaulType is also available on the [Mac App Store](https://apps.apple.com/app/vaultype/id6759566772). This version is sandboxed and updated through the App Store.
+
+> :information_source: **Feature differences:** Due to App Store sandbox rules, the App Store version delivers dictated text via the clipboard (a HUD prompts you to press ⌘V) instead of typing at your cursor, and voice commands are limited to launching/switching apps, running Shortcuts, and custom aliases. Global shortcut aliases, plugins, and battery-aware throttling are available in the direct download only. The speech recognition and LLM pipeline is identical in both versions.
+
 ---
 
 ## 3. First-Time Setup Walkthrough

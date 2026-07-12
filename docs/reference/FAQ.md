@@ -34,6 +34,15 @@ The name captures the core philosophy:
 
 Yes. VaulType is open source under the GPL-3.0 license. It's free to download, use, and modify.
 
+### Should I get the Mac App Store version or the direct download?
+
+Both are free and share the same on-device Whisper + LLM pipeline, processing modes, history, vocabulary, and hotkeys. The differences come from App Store sandbox rules:
+
+- **Direct download (DMG / Homebrew)** — types text directly at your cursor, full voice-command set (windows, volume, brightness, screenshots, system toggles), global shortcut aliases, plugins, battery-aware throttling, Sparkle auto-updates.
+- **[Mac App Store](https://apps.apple.com/app/vaultype/id6759566772)** — copies dictated text to the clipboard and shows a "press ⌘V" prompt (sandboxed apps can't type into other apps), voice commands limited to launching/switching apps, running Shortcuts, and custom aliases; updates arrive through the App Store.
+
+If you want text at your cursor and full system voice control, choose the direct download. If you prefer App Store installs and automatic store updates, the App Store version covers the complete core dictation experience.
+
 ### What languages does VaulType support?
 
 VaulType supports **90+ languages** through Whisper's multilingual models (small, medium, large-v3), including English, Turkish, Spanish, French, German, Chinese, Japanese, Arabic, and many more. English-only models are also available for faster performance. Language can be auto-detected or manually selected.
@@ -267,34 +276,17 @@ Try these in order:
 
 ### How is VaulType different from Apple's built-in Dictation?
 
-| Feature | VaulType | Apple Dictation |
-|---------|----------|-----------------|
-| Privacy | 100% local | Partial (on-device + cloud) |
-| LLM post-processing | Yes (6 modes) | No |
-| Voice commands | Yes (app launch, window mgmt) | Limited (system commands only) |
-| Custom modes | Yes | No |
-| Open source | Yes (GPL-3.0) | No |
-| Offline support | Full | Partial (basic offline mode) |
-| Text injection | All apps | All apps |
-| App-aware context | Yes | No |
-| Cost | Free | Free with macOS |
+Apple's Dictation is a solid baseline and free with macOS (on-device on Apple Silicon for supported languages). VaulType is built for heavier dictation use: LLM post-processing with six modes (Raw, Clean, Structure, Prompt, Code, Custom), custom vocabulary, dictation history, app-aware mode switching, and voice commands. VaulType is also open source (GPL-3.0) with a zero-cloud architecture — there is no cloud path at all, so nothing can be sent off-device even by accident.
 
-### How is VaulType different from Superwhisper / VoiceInk?
+### How does VaulType compare to other dictation apps (MacWhisper, Superwhisper, VoiceInk, …)?
 
-| Feature | VaulType | Superwhisper | VoiceInk |
-|---------|----------|-------------|----------|
-| Pricing | Free (GPL-3.0) | $8/month | $30 one-time |
-| Dual AI pipeline (STT + LLM) | Yes (both local) | Partial (local + cloud) | No |
-| Voice commands | Yes | No | No |
-| Processing modes | 6 | 4+ | Basic |
-| Zero-network | Yes | Partial | Partial |
-| Open source | Yes | No | No |
-| Developer-focused modes | Yes (Code, Prompt) | No | No |
-| App-aware context | Yes | Yes | No |
+There are several good Whisper-based macOS dictation apps, and their features and pricing change frequently — check their websites for current details rather than relying on third-party comparisons. What sets VaulType apart is the combination of:
 
-### How is VaulType different from MacWhisper?
-
-MacWhisper is a great transcription app, but it's focused on file transcription, not real-time dictation. VaulType is designed for **live dictation into any app** with LLM post-processing and voice commands.
+- **Fully open source** (GPL-3.0) and free, with no tiers or subscriptions
+- **Zero cloud features by design** — speech recognition and LLM processing cannot leave your Mac
+- **Both AI engines built in** — whisper.cpp and llama.cpp ship inside the app; no separate installs, accounts, or local server setups
+- **Six processing modes** with app-aware context, including developer-focused Code and Prompt modes
+- **Voice commands** for launching/switching apps, running Shortcuts, and custom aliases (plus window and system control in the direct version)
 
 ---
 

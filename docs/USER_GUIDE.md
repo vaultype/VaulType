@@ -65,6 +65,9 @@ Apple Silicon Macs are strongly recommended. The on-device AI models run signifi
 brew install --cask vaultype
 ```
 
+**From the Mac App Store:**
+Install directly from the [Mac App Store](https://apps.apple.com/app/vaultype/id6759566772). Note that the App Store version copies dictated text to the clipboard for you to paste with ⌘V (sandbox rules prevent typing into other apps), and offers a reduced voice-command set (launch/switch apps, run Shortcuts, custom aliases). All speech recognition and text processing is identical to the direct download.
+
 When you first open VaulType, macOS may ask if you are sure you want to open it. Click "Open" to proceed. VaulType is not yet notarized for all distribution channels.
 
 ---

@@ -7,6 +7,7 @@
 <p align="center">
   <!-- Badges -->
   <a href="https://github.com/vaultype/VaulType/releases/latest"><img alt="Download" src="https://img.shields.io/github/v/release/vaultype/VaulType?label=Download&logo=apple&color=7B61FF"></a>
+  <a href="https://apps.apple.com/app/vaultype/id6759566772"><img alt="Mac App Store" src="https://img.shields.io/badge/Mac_App_Store-available-0D96F6?logo=appstore&logoColor=white"></a>
   <img alt="Platform" src="https://img.shields.io/badge/platform-macOS%2014%2B-blue?logo=apple">
   <img alt="Swift" src="https://img.shields.io/badge/Swift-5.9%2B-orange?logo=swift">
   <img alt="License" src="https://img.shields.io/badge/license-GPL--3.0-green">
@@ -34,13 +35,15 @@ The app lives in your macOS menu bar and provides global hotkey-activated dictat
 | Feature | Description |
 |---------|-------------|
 | **Zero-Network Architecture** | All speech recognition and LLM processing happens locally. No cloud, no telemetry, no data leaves your Mac. |
-| **Dual Local AI Pipeline** | whisper.cpp (STT) + llama.cpp (LLM) in one app — a unique combination no competitor offers. |
+| **Dual Local AI Pipeline** | whisper.cpp (STT) + llama.cpp (LLM) bundled in one app — no separate installs, accounts, or cloud services needed. |
 | **Six Processing Modes** | Raw, Clean, Structure, Prompt, Code, and Custom modes for every use case. |
-| **Universal Text Injection** | Dictate into any macOS app — terminals, browsers, IDEs, Slack, and more. |
-| **Voice Commands** | Launch apps, manage windows, and control your Mac with voice. |
+| **Universal Text Injection** | Dictate into any macOS app — terminals, browsers, IDEs, Slack, and more.¹ |
+| **Voice Commands** | Launch apps, manage windows, and control your Mac with voice.¹ |
 | **App-Aware Context** | Auto-selects formatting mode based on the active application. |
 | **Editable Overlay** | Review and edit transcribed text in a floating window before injection. |
 | **90+ Languages** | Multilingual support with automatic language detection using Whisper's multilingual models. English-only models available for faster performance. |
+
+> ¹ In the **Mac App Store version**, dictated text is copied to the clipboard for you to paste with ⌘V (App Store sandbox rules don't allow apps to type into other apps), and voice commands are limited to launching/switching apps, running Shortcuts, and custom aliases. The **direct download** types text at your cursor and includes the full command set. See [App Store vs. Direct Download](#app-store-vs-direct-download).
 
 ## Tech Stack
 
@@ -54,8 +57,8 @@ The app lives in your macOS menu bar and provides global hotkey-activated dictat
 | Local Storage | SwiftData |
 | Build System | Xcode 15+ / Swift Package Manager / CMake |
 | CI/CD | GitHub Actions |
-| Auto-Updates | Sparkle |
-| Distribution | DMG / Homebrew Cask |
+| Auto-Updates | Sparkle (direct) / App Store |
+| Distribution | Mac App Store / DMG / Homebrew Cask |
 
 ## Quick Start
 
@@ -72,12 +75,16 @@ brew install --cask vaultype
 2. Open the DMG and drag VaulType to Applications
 3. Launch VaulType from Applications
 
+### Install from the Mac App Store
+
+<a href="https://apps.apple.com/app/vaultype/id6759566772">Download VaulType on the Mac App Store</a> — a sandboxed version with the same on-device Whisper + LLM pipeline. Due to App Store sandbox rules it delivers text via the clipboard (press ⌘V to paste) instead of typing at your cursor, and omits a few system-level features. See [App Store vs. Direct Download](#app-store-vs-direct-download).
+
 ### First Run
 
-1. **Grant Permissions** — VaulType will request Accessibility and Microphone permissions
+1. **Grant Permissions** — VaulType will request Microphone access; the direct download also requests Accessibility (used to type text at your cursor)
 2. **Download a Model** — Open Settings and download a Whisper model (recommended: `small` for balanced speed/accuracy)
 3. **Set Your Hotkey** — Default is double-tap Fn or hold Right Option
-4. **Start Dictating** — Press your hotkey, speak, and release. Text appears at your cursor.
+4. **Start Dictating** — Press your hotkey, speak, and release. Text appears at your cursor (direct) or is copied for ⌘V paste (App Store).
 
 > 💡 For detailed setup instructions, see the [Quick Start Guide](docs/getting-started/QUICK_START.md).
 
@@ -147,17 +154,30 @@ VaulType/
   <img src="assets/screenshots/menubar.png" width="270" alt="Menu Bar">
 </p>
 
-## How It Compares
+## Why VaulType?
 
-| Feature | VaulType | MacWhisper | Superwhisper | Apple Dictation |
-|---------|----------|------------|--------------|-----------------|
-| Fully Offline | Yes | Partial | Partial | Partial |
-| Local LLM Processing | Yes | No | Partial | No |
-| Voice Commands | Yes | No | No | Limited |
-| Processing Modes | 6 | 1 | 4+ | 1 |
-| App-Aware Context | Yes | No | Yes | No |
-| Open Source | Yes (GPL-3.0) | No | No | No |
-| Price | Free | $80 | $8/mo | Free |
+- **Zero cloud, by architecture** — there are no cloud features to opt into. Speech recognition and LLM processing run entirely on your Mac; the only network requests are optional model downloads.
+- **Free and open source** — GPL-3.0. No tiers, no subscriptions, no lifetime licenses. Read the code, audit it, or build it yourself.
+- **Both AI engines built in** — whisper.cpp and llama.cpp ship inside the app with Metal GPU acceleration. No separate installs, accounts, or local server setups.
+- **Six processing modes** — Raw, Clean, Structure, Prompt, Code, and Custom, with app-aware context that picks the right mode per app.
+- **Voice commands** — launch and switch apps, run Shortcuts, and define custom aliases by voice; the direct version adds window management, volume, and system controls.
+- **Native menu bar app** — Swift/SwiftUI for macOS 14+, hotkey-driven (including fn/Globe), out of your way until you need it.
+
+## App Store vs. Direct Download
+
+Both versions share the same on-device Whisper + LLM pipeline, six processing modes, dictation history, custom vocabulary, app profiles, and hotkeys (including fn/Globe). They differ where App Store sandbox rules apply:
+
+| | Direct Download (DMG / Homebrew) | Mac App Store |
+|---|---|---|
+| Text delivery | Types at your cursor (CGEvent), clipboard fallback | Copies to clipboard — HUD prompts you to press ⌘V |
+| Voice commands | Full set: apps, windows, volume, brightness, screenshots, system toggles | Launch/switch apps, run Shortcuts, custom aliases |
+| Global shortcut aliases | Yes (voice-triggered keystrokes) | — |
+| Plugins | Yes | — |
+| Battery-aware throttling | Yes (IOKit) | — |
+| Updates | Sparkle (in-app) | App Store |
+| Sandboxed | No (Developer ID, notarized) | Yes |
+
+If you want dictation that types directly at your cursor and full system voice control, use the direct download. If you prefer App Store installs and updates, the App Store version covers the core dictation experience.
 
 ## Documentation
 

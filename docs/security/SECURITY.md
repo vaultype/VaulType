@@ -686,11 +686,11 @@ VaulType **cannot use the full macOS App Sandbox** due to its core functionality
 
 | Distribution Method | App Sandbox | Accessibility API | Auto-Update | Gatekeeper | Notes |
 |--------------------|-------------|-------------------|-------------|------------|-------|
-| **Mac App Store** | Required | Not possible (standard sandbox) | Via App Store | Yes | Would require removing core text injection functionality |
-| **Direct (Developer ID + Notarization)** | Not required | Full support | Via Sparkle | Yes (notarized) | **VaulType's chosen distribution method** |
+| **Mac App Store** | Required | Not possible (standard sandbox) | Via App Store | Yes | **Shipped since v1.2.3** as a clipboard-only variant: text is copied and the user pastes with ⌘V; no CGEvent/Accessibility symbols in the binary |
+| **Direct (Developer ID + Notarization)** | Not required | Full support | Via Sparkle | Yes (notarized) | **VaulType's primary distribution method** |
 | **Direct (unsigned)** | Not required | Full support | Manual | No (Gatekeeper warning) | Not recommended; requires user to bypass Gatekeeper |
 
-VaulType is distributed directly via Developer ID signing and notarization. This provides:
+VaulType ships both a direct build (Developer ID + notarization) and a sandboxed Mac App Store build. The direct build provides:
 - Full Accessibility API support for text injection
 - Gatekeeper approval via notarization (no security warnings)
 - Automatic updates via Sparkle with EdDSA signature verification
